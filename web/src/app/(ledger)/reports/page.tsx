@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 
 import AnalystRunCharts from "@/components/AnalystRunCharts";
+import { useClientMounted } from "@/hooks/useClientMounted";
 import { useReportGeneration } from "@/hooks/useReportGeneration";
 import LedgerPageHeader from "@/components/LedgerPageHeader";
 import ReportsRunHistory from "@/components/ReportsRunHistory";
@@ -235,6 +236,8 @@ export default function ReportsPage(props: NextClientPageProps) {
     downloadBundleCsv,
   } = useReportGeneration();
 
+  const mounted = useClientMounted();
+
   const lastMerged =
     lastBundle?.optimize ??
     (lastReport ? (mergeOptimizeResponse(lastReport) as Record<string, unknown>) : null);
@@ -352,14 +355,16 @@ export default function ReportsPage(props: NextClientPageProps) {
 
           <div
             className={`rounded-lg px-4 py-3 text-xs font-mono ${
-              hasSnapshot
+              mounted && hasSnapshot
                 ? "bg-ql-tertiary/10 text-ql-tertiary border border-ql-tertiary/20"
                 : "bg-ql-surface-container text-ql-on-surface-variant border border-ql-outline-variant"
             }`}
           >
-            {hasSnapshot && snapshotAt
-              ? `Using Lab snapshot from ${new Date(snapshotAt).toLocaleString()}`
-              : "No Lab run yet — will run a fresh optimization with session defaults"}
+            {!mounted
+              ? "No Lab run yet — will run a fresh optimization with session defaults"
+              : hasSnapshot && snapshotAt
+                ? `Using Lab snapshot from ${new Date(snapshotAt).toLocaleString()}`
+                : "No Lab run yet — will run a fresh optimization with session defaults"}
           </div>
 
           <button
@@ -371,7 +376,7 @@ export default function ReportsPage(props: NextClientPageProps) {
             {generating ? "Generating..." : "Generate & Download"}
           </button>
 
-          {hasSnapshot && (
+          {mounted && hasSnapshot && (
             <button
               type="button"
               onClick={() => void generateReportFresh()}

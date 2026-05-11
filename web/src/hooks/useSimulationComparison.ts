@@ -13,6 +13,8 @@ export interface ScenarioResult {
   ret: number;
   vol: number;
   nActive: number;
+  /** False when the optimize call threw — row still shown so the sweep can finish. */
+  ok: boolean;
 }
 
 const OBJECTIVES = [
@@ -23,6 +25,8 @@ const OBJECTIVES = [
   "min_variance",
   "equal_weight",
 ] as const;
+
+export const SIMULATION_COMPARISON_SCENARIO_COUNT = OBJECTIVES.length;
 
 function objectiveLabel(obj: string): string {
   return obj
@@ -43,6 +47,19 @@ function mapOptimizeRow(obj: string, resp: Record<string, unknown>): ScenarioRes
     ret,
     vol,
     nActive,
+    ok: true,
+  };
+}
+
+function failedRow(obj: string): ScenarioResult {
+  return {
+    name: objectiveLabel(obj),
+    objective: obj,
+    sharpe: 0,
+    ret: 0,
+    vol: 0,
+    nActive: 0,
+    ok: false,
   };
 }
 
@@ -55,7 +72,7 @@ export function useSimulationComparison() {
   const runComparison = useCallback(async () => {
     setRunning(true);
     setError(null);
-    const results: ScenarioResult[] = [];
+    setScenarios([]);
     let failures = 0;
 
     const tickers =
@@ -71,28 +88,21 @@ export function useSimulationComparison() {
           weight_min: wMin,
           maxWeight: wMax,
         })) as Record<string, unknown>;
-        results.push(mapOptimizeRow(obj, resp));
+        const row = mapOptimizeRow(obj, resp);
+        setScenarios((prev) => [...prev, row]);
       } catch {
         failures += 1;
-        results.push({
-          name: objectiveLabel(obj),
-          objective: obj,
-          sharpe: 0,
-          ret: 0,
-          vol: 0,
-          nActive: 0,
-        });
+        setScenarios((prev) => [...prev, failedRow(obj)]);
       }
     }
 
-    setScenarios(results);
     if (failures === OBJECTIVES.length) {
       setError(
         "All optimization calls failed. Is the API running and reachable?"
       );
     } else if (failures > 0) {
       setError(
-        `${failures} of ${OBJECTIVES.length} objectives failed (see zeros in table).`
+        `${failures} of ${OBJECTIVES.length} objectives failed (see FAILED in table).`
       );
     }
     setRunning(false);
@@ -103,5 +113,6 @@ export function useSimulationComparison() {
     running,
     error,
     runComparison,
+    scenarioTotal: SIMULATION_COMPARISON_SCENARIO_COUNT,
   };
 }

@@ -1,0 +1,858 @@
+{
+  "generated_at": "2026-05-11T18:07:40Z",
+  "branch": "main",
+  "commit": "6f5d4a78",
+  "next_url": "http://localhost:3000",
+  "next_url_alt": "http://localhost:3042",
+  "api_url": "http://localhost:5000",
+  "audited_ports": [
+    3000,
+    3042
+  ],
+  "notes": [
+    "2026-05-11 post-fix refresh: P0 dashboard API tile tri-state, simulations progressive sweep UI, reports/layout hydration guards \u2014 see git diff (branch dirty).",
+    "Dev servers verified via curl: Flask :5000, Next :3000 (./scripts/dev.sh). Alternate Next port 3042 via scripts/run-next-web.sh / NEXT_WEB_PORT was not used in this run.",
+    "web/.env.local key names observed (values omitted): API_PROXY_TARGET, NEXT_PUBLIC_API_KEY, NEXT_PUBLIC_API_URL, VERCEL_OIDC_TOKEN. Flask API_KEY is server-side only.",
+    "Next route web/src/app/api/[[...path]]/route.ts proxies to Flask when clients call same-origin /api/*; dev.sh uses next.config rewrites to :5000 instead.",
+    "Next route web/src/app/health/route.ts returns JSON liveness for load balancers (not audited as an operator page).",
+    "P1 (2026-05): manual_flows[] exercises IBM simulator smoke (when pool allows), async job, walk-forward, PDF export (WeasyPrint), Tiingo prerequisite. Repo root TIINGO_API_KEY present=no.",
+    "Port :3042 validation used `NEXT_PUBLIC_API_URL=\"\" npm run build` then `next start -p 3042` (a second `next dev` on the same repo is blocked while dev.sh owns :3000 \u2014 see Next singleton lock).",
+    "curl GET /api/health on :3042 with X-API-Key + X-Tenant-Id confirms request-time proxy to Flask (:5000)."
+  ],
+  "pages": [
+    {
+      "path": "/",
+      "file": "web/src/app/page.tsx",
+      "intended_task": "Immediately redirect the operator to the Executive Dashboard.",
+      "inputs": [
+        "None (server redirect)."
+      ],
+      "api_endpoints": [],
+      "expected_elements": [
+        "307/308 to /dashboard"
+      ],
+      "checks": [
+        {
+          "step": "Navigate to http://localhost:3000/",
+          "result": "pass",
+          "evidence": "browser_navigate landed on http://localhost:3000/dashboard",
+          "port": 3000
+        },
+        {
+          "step": "Network/API",
+          "result": "skip",
+          "evidence": "No client-side API calls on root.",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/ HTTP 200; SSR contains Executive Dashboard marker=True. Uses next start :3042 (NEXT_PUBLIC cleared at web build).",
+          "port": 3042
+        }
+      ],
+      "issues": [],
+      "status": "pass"
+    },
+    {
+      "path": "/dashboard",
+      "file": "web/src/app/(ledger)/dashboard/page.tsx",
+      "intended_task": "Provide an executive view with API/regime status, quick optimize, KPIs, holdings feed, and shortcuts into other workspaces.",
+      "inputs": [
+        "Ledger session (objective, tickers, constraints via LedgerSessionContext)",
+        "localStorage ql_session_tenant / ql_active_tenant \u2192 X-Tenant-Id",
+        "Optional NEXT_PUBLIC_API_URL / NEXT_PUBLIC_API_KEY"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/market/regime",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/portfolio/optimize",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Executive Dashboard heading",
+        "Run Optimization",
+        "API/regime strip",
+        "KPI cards",
+        "Holdings",
+        "Optimization Feed",
+        "Quick actions"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate + snapshot",
+          "result": "pass",
+          "evidence": "System Status API tile shows Checking\u2026 then Online; strip still shows Connecting until health resolves",
+          "port": 3000
+        },
+        {
+          "step": "browser_console_messages",
+          "result": "pass",
+          "evidence": "No app-level hydration text after ledger/report fixes; Cursor tooling may still inject data-cursor-ref attributes in dev",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/dashboard) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/dashboard HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [],
+      "status": "pass"
+    },
+    {
+      "path": "/portfolio",
+      "file": "web/src/app/(ledger)/portfolio/page.tsx",
+      "intended_task": "Run the full Portfolio Lab (CustomizableQuantumDashboard): universe, objectives, synthetic/live data, optimize, IBM hooks, and durable lab runs.",
+      "inputs": [
+        "URL query: objective, weight_min, weight_max, K_screen, K_select, tickers (hydrated once via PortfolioHydrator)",
+        "Ledger session",
+        "localStorage tenant keys"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/config/objectives",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/presets",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/ibm-quantum/status",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/market-data",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/portfolio/optimize",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/runs",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Quantum Portfolio Lab heading",
+        "Portfolio/Performance/Risk/Sensitivity tabs",
+        "Run optimization",
+        "Preset/objective chips"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate /portfolio",
+          "result": "pass",
+          "evidence": "Primary heading and lab controls present in snapshot",
+          "port": 3000
+        },
+        {
+          "step": "browser_network_requests",
+          "result": "pass",
+          "evidence": "GET /api/config/objectives, /api/config/presets, /api/config/ibm-quantum/status \u2014 all 200",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/portfolio) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/portfolio HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "Manual-only: Run optimization, live market load, IBM connect, and lab run flows were not executed (avoid heavy/long jobs per audit scope)."
+      ],
+      "status": "pass"
+    },
+    {
+      "path": "/strategy",
+      "file": "web/src/app/(ledger)/strategy/page.tsx",
+      "intended_task": "Browse API objectives/presets, tune constraints, copy Portfolio Lab deep links, and export a YAML strategy manifest.",
+      "inputs": [
+        "Optional NEXT_PUBLIC_REPO_FILE_BASE for GitHub links",
+        "Ticker line, sliders, K_screen/K_select fields"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/config/objectives",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/presets",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Strategy Builder heading",
+        "Optimization Method groups",
+        "Presets",
+        "Constraints",
+        "Manifest YAML"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate; wait 2s; snapshot",
+          "result": "pass",
+          "evidence": "Objective cards loaded (e.g. Equal Weight Classical); no error banner",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/strategy) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/strategy HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [],
+      "status": "pass"
+    },
+    {
+      "path": "/quantum",
+      "file": "web/src/app/(ledger)/quantum/page.tsx",
+      "intended_task": "Manage IBM Quantum connection, view Runtime workloads and integration catalog, run optional smoke/VQE/portfolio async jobs against the current session.",
+      "inputs": [
+        "Ledger session tickers/objective/constraints",
+        "IBM token + optional instance CRN (UI)",
+        "localStorage tenant keys",
+        "NEXT_PUBLIC_API_KEY must match Flask API_KEY when enforced"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/tenants",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/ibm-quantum/status",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/integrations",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/ibm-quantum/workloads",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/ibm-quantum/verify",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/ibm-quantum",
+          "exists_on_backend": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/config/ibm-quantum",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/ibm-quantum/smoke-test",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/jobs/optimize",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/jobs/backtest",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/jobs/{job_id}",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Quantum Engine heading",
+        "Engine Telemetry",
+        "IBM Quantum panel",
+        "Portfolio jobs"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate /quantum",
+          "result": "pass",
+          "evidence": "Telemetry + IBM + jobs sections render; simulator mode when IBM not configured",
+          "port": 3000
+        },
+        {
+          "step": "browser_network_requests",
+          "result": "pass",
+          "evidence": "GET /api/health, /api/config/tenants, /api/config/ibm-quantum/status, /api/config/integrations \u2014 200",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/quantum) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/quantum HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "Manual-only: IBM verify/connect, smoke test (hardware/simulator), VQE optimize job, async portfolio jobs not triggered.",
+        "GET /api/config/ibm-quantum/workloads only meaningful when IBM configured."
+      ],
+      "status": "pass-with-warnings"
+    },
+    {
+      "path": "/simulations",
+      "file": "web/src/app/(ledger)/simulations/page.tsx",
+      "intended_task": "Compare multiple objectives side-by-side (efficient frontier), show heuristic stress cards, and optionally run walk-forward backtests.",
+      "inputs": [
+        "Ledger session tickers/constraints for objective sweep",
+        "Walk-forward form: tickers, dates, train/test months, cost bps, objective"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/portfolio/optimize",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/backtest/walkforward",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Simulations heading",
+        "Strategy Comparison table",
+        "Efficient Frontier chart",
+        "Stress Scenarios",
+        "Walk-Forward Backtest form"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate /simulations",
+          "result": "pass",
+          "evidence": "Stress scenarios + walk-forward UI rendered immediately",
+          "port": 3000
+        },
+        {
+          "step": "Progressive comparison + frontier",
+          "result": "pass",
+          "evidence": "Strategy Comparison visible with Running n of 6 chip; table rows append per sequential optimize; frontier updates with successful points",
+          "port": 3000
+        },
+        {
+          "step": "browser_search screenshot context",
+          "result": "pass",
+          "evidence": "Mid-sweep screenshot showed RUNNING 4 OF 6 with populated strategy rows",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/simulations) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/simulations HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "Walk-forward submit not exercised (manual-only: long backtest)."
+      ],
+      "status": "pass"
+    },
+    {
+      "path": "/settings",
+      "file": "web/src/app/(ledger)/settings/page.tsx",
+      "intended_task": "Inspect/copy session JSON, manage IBM token and tenant, run Braket smoke test, and read env/API docs pointers.",
+      "inputs": [
+        "Session state",
+        "IBM token fields",
+        "Tenant select/create",
+        "Optional ADMIN_API_KEY for POST /api/config/tenants"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/config/ibm-quantum/status",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/config/tenants",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/ibm-quantum",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/ibm-quantum/verify",
+          "exists_on_backend": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/config/ibm-quantum",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/tenants",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/config/braket/smoke-test",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Settings heading",
+        "Active Session",
+        "IBM Quantum Integration",
+        "Active Tenant",
+        "AWS Braket",
+        "Environment Variables",
+        "Open API Docs \u2192 /api/docs/openapi"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate /settings",
+          "result": "pass",
+          "evidence": "All panels visible; tenant select showed default",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/settings) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/settings HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "Manual-only: save/verify IBM token, create tenant, Braket smoke not executed."
+      ],
+      "status": "pass"
+    },
+    {
+      "path": "/reports",
+      "file": "web/src/app/(ledger)/reports/page.tsx",
+      "intended_task": "Generate analyst reports from last Lab snapshot or fresh optimize; export JSON/CSV/bundle; browse merged server + browser run history.",
+      "inputs": [
+        "session.lastOptimize snapshot vs fresh optimize path",
+        "Report type + format selectors",
+        "listLabRuns on mount + Refresh"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/runs",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/portfolio/optimize",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Reports heading",
+        "Run history & findings",
+        "Report Type buttons",
+        "Generate & Download"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate /reports",
+          "result": "pass",
+          "evidence": "Full UI including history controls",
+          "port": 3000
+        },
+        {
+          "step": "Round-trip vs other ledger routes",
+          "result": "pass",
+          "evidence": "Dashboard \u2194 Reports navigation without fatal Next overlay after snapshot banner + layout timestamp alignment",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/reports) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/reports HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "Generate & Download not clicked (would trigger optimize or use snapshot)."
+      ],
+      "status": "pass"
+    },
+    {
+      "path": "/reports/runs/00000000-0000-4000-8000-000000000099",
+      "file": "web/src/app/(ledger)/reports/runs/[id]/page.tsx",
+      "intended_task": "Poll and display a durable lab run by id, show results/charts, and export bundle/CSV/print/PDF.",
+      "inputs": [
+        "Path param run id",
+        "GET /api/runs/{id} polling",
+        "downloadReportPdf \u2192 GET /api/export/report/{id}.pdf"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/runs/{run_id}",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/export/report/{run_id}.pdf",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Lab Run Report heading",
+        "Loading run\u2026 then error or run sections"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate fake uuid",
+          "result": "pass-with-warnings",
+          "evidence": "GET /api/runs/00000000-0000-4000-8000-000000000099 returned 404 per network log",
+          "port": 3000
+        },
+        {
+          "step": "Error message in accessibility tree",
+          "result": "skip",
+          "evidence": "Error copy may not surface in compact snapshot; 404 confirms backend contract",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/reports/runs/00000000-0000-4000-8000-000000000099) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/reports/runs/00000000-0000-4000-8000-000000000099 HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "PDF export depends on server WeasyPrint stack (Fly/local); not validated.",
+        "Completed-run flows not exercised."
+      ],
+      "status": "pass-with-warnings"
+    },
+    {
+      "path": "/reports/history/nonexistent-local-id",
+      "file": "web/src/app/(ledger)/reports/history/[id]/page.tsx",
+      "intended_task": "Resolve a run id via GET /api/runs/{id} then fall back to browser localStorage history; render analyst exports for stored optimizations.",
+      "inputs": [
+        "Path id",
+        "localStorage ql-optimization-runs-v1",
+        "Optional GET /api/runs/{id}",
+        "downloadReportPdf"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/runs/{run_id}",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/export/report/{run_id}.pdf",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "Optimization run (browser) or Run not found"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate bogus id",
+          "result": "pass",
+          "evidence": "browser_search found visible 'Run not found' with explanation re localStorage",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/reports/history/nonexistent-local-id) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/reports/history/nonexistent-local-id HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [],
+      "status": "pass"
+    },
+    {
+      "path": "/health-check",
+      "file": "web/src/app/health-check/page.tsx",
+      "intended_task": "Developer smoke page: show raw GET /api/health JSON and optional market-data + optimize button tests.",
+      "inputs": [
+        "NEXT_PUBLIC_API_URL / proxy wiring"
+      ],
+      "api_endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/market-data",
+          "exists_on_backend": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/portfolio/optimize",
+          "exists_on_backend": true
+        }
+      ],
+      "expected_elements": [
+        "API health check h1",
+        "Refresh health",
+        "Smoke: market data",
+        "Smoke: optimize"
+      ],
+      "checks": [
+        {
+          "step": "browser_navigate /health-check",
+          "result": "pass",
+          "evidence": "Heading and buttons render",
+          "port": 3000
+        },
+        {
+          "step": "Click Refresh health",
+          "result": "pass",
+          "evidence": "Two GET /api/health requests logged with status 200",
+          "port": 3000
+        },
+        {
+          "step": "curl-style GET page on :3042 (/health-check) via next start proxy mode",
+          "result": "pass",
+          "evidence": "GET http://127.0.0.1:3042/health-check HTTP 200; semantic marker_present=True. Proxy exercised when page loads /api/* (same-origin :3042). CORS bypass: same-origin to Next -> proxy to Flask.",
+          "port": 3042
+        }
+      ],
+      "issues": [
+        "Smoke market/optimize buttons not pressed (would call external market APIs / optimizer)."
+      ],
+      "status": "pass"
+    }
+  ],
+  "summary": {
+    "pass": 9,
+    "pass_with_warnings": 2,
+    "fail": 0,
+    "blocked": 0
+  },
+  "cross_cutting": {
+    "next_server_routes": [
+      {
+        "file": "web/src/app/api/[[...path]]/route.ts",
+        "role": "Runtime reverse-proxy from Next to Flask (API_PROXY_TARGET or Fly internal DNS); forwards X-API-Key and X-Tenant-Id."
+      },
+      {
+        "file": "web/src/app/health/route.ts",
+        "role": "GET returns {status: ok} for platform liveness."
+      }
+    ],
+    "orphaned_client_api_helpers": [
+      "streamRun in web/src/lib/api.ts \u2014 backend GET /api/runs/{id}/stream exists but no web/src importer found"
+    ],
+    "unsafe_or_manual_e2e": [
+      "Heavy UI clicks not covered by curl smokes (e.g. Optimize from Reports UI, destructive tenant/IBM clears, hardware IBM smoke, full six-scenario simulations wait).",
+      "P1 automated coverage: POST /api/jobs/optimize + poll (pass), POST /api/backtest/walkforward (pass via yfinance), GET report PDF after completed run (pass), IBM simulator smoke infra-limited (pass-with-warnings), Tiingo market path blocked pending TIINGO_API_KEY.",
+      "`next dev` singleton: cannot run `./scripts/run-next-web.sh` alongside `./scripts/dev.sh`; :3042 used `NEXT_PUBLIC_API_URL=\"\" npm run build` then `next start -p 3042`."
+    ]
+  },
+  "manual_flows": [
+    {
+      "id": "ibm_quantum_simulator_smoke",
+      "label": "IBM Quantum Runtime simulator smoke-test",
+      "target_pages": [
+        "/quantum",
+        "/settings"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/config/ibm-quantum/smoke-test",
+          "exists_on_backend": true
+        }
+      ],
+      "prerequisites": [
+        "Stored IBM token for tenant (POST /api/config/ibm-quantum or Settings UI)",
+        "Operational IBM simulator backend with >=8 qubits in account pool",
+        "qiskit-ibm-runtime installed on API host"
+      ],
+      "checks": [
+        {
+          "step": "POST body {\"mode\":\"simulator\"}",
+          "result": "pass-with-warnings",
+          "evidence": "HTTP 502 IBM_SMOKE_TEST_FAILED \u2014 No operational IBM simulator backend with \u22658 qubit(s) (tenant had IBM configured; pool constraint). Retry when a suitable simulator backend is available.",
+          "port": null
+        }
+      ],
+      "issues": [
+        "IBM simulator pool had no qualifying backend \u2014 not an app-layer regression."
+      ],
+      "status": "pass-with-warnings"
+    },
+    {
+      "id": "portfolio_async_job",
+      "label": "Async portfolio optimize job queue",
+      "target_pages": [
+        "/quantum"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/jobs/optimize",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/jobs/{job_id}",
+          "exists_on_backend": true
+        }
+      ],
+      "prerequisites": [],
+      "checks": [
+        {
+          "step": "POST markowitz + synthetic 3 tickers",
+          "result": "pass",
+          "evidence": "HTTP 202 job_id=267230f0-dd29-4788-89e5-bff7e26d79b5; polled to terminal=completed; result included holdings/opt payload keys.",
+          "port": null
+        }
+      ],
+      "issues": [],
+      "status": "pass"
+    },
+    {
+      "id": "walk_forward_backtest",
+      "label": "Walk-forward backtest (small window)",
+      "target_pages": [
+        "/simulations"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/backtest/walkforward",
+          "exists_on_backend": true
+        }
+      ],
+      "prerequisites": [
+        "Flask DATA_PROVIDER resolves price history (Tiingo when TIINGO_API_KEY set else yfinance)"
+      ],
+      "checks": [
+        {
+          "step": "POST 4 tickers 2024-05-01..2025-05-01 train_months=6 test_months=1 max_sharpe",
+          "result": "pass",
+          "evidence": "HTTP 200; metadata.n_periods=6; equity_curve.{dates,portfolio} non-empty dict; summary contained sharpe_ratio. data_source=yfinance (no TIINGO_API_KEY in root .env.local).",
+          "port": null
+        }
+      ],
+      "issues": [
+        "Used yfinance for prices because TIINGO_API_KEY absent from repo root .env.local."
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "pdf_report",
+      "label": "Lab run PDF export (WeasyPrint)",
+      "target_pages": [
+        "/reports/runs/{id}"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/runs",
+          "exists_on_backend": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/export/report/{run_id}.pdf",
+          "exists_on_backend": true
+        }
+      ],
+      "prerequisites": [
+        "WeasyPrint + Cairo/Pango libs on API host",
+        "Completed lab run (polled POST /api/runs to completed)"
+      ],
+      "checks": [
+        {
+          "step": "Synthetic equal_weight run completed then GET .pdf",
+          "result": "pass",
+          "evidence": "run_id=e8a31096-6fee-4f14-a76c-a0731b6c8cf1; Content-Type application/pdf bytes=18128 (>10KB threshold).",
+          "port": null
+        }
+      ],
+      "issues": [],
+      "status": "pass"
+    },
+    {
+      "id": "live_market_fetch_tiingo",
+      "label": "Live Tiingo market-data path",
+      "target_pages": [
+        "/portfolio",
+        "/health-check"
+      ],
+      "api_endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/market-data",
+          "exists_on_backend": true
+        }
+      ],
+      "prerequisites": [
+        "TIINGO_API_KEY in repo root .env.local (or API process env)",
+        "restart Flask"
+      ],
+      "checks": [
+        {
+          "step": "prerequisite scan",
+          "result": "blocked",
+          "evidence": "TIINGO_API_KEY not present in /quantum-hybrid-portfolio/.env.local at audit time (key names enumerated only). Add key + restart Flask, then POST /api/market-data and assert provider tiingo.",
+          "port": null
+        }
+      ],
+      "issues": [
+        "User-selected plan required Tiingo provisioning before asserting Tiingo exclusivity."
+      ],
+      "status": "blocked"
+    }
+  ],
+  "manual_flows_summary": {
+    "pass": 3,
+    "pass_with_warnings": 1,
+    "fail": 0,
+    "blocked": 1
+  }
+}

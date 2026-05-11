@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { useLedgerSession } from "@/context/LedgerSessionContext";
 import { useThemePreference, type ThemePreference } from "@/context/ThemeContext";
+import { useClientMounted } from "@/hooks/useClientMounted";
 
 const SIDEBAR_COLLAPSED_KEY = "ql-sidebar-collapsed";
 
@@ -76,6 +77,12 @@ function objectiveLabel(obj: string): string {
   return obj.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Same output on server and client — avoids hydration mismatch vs `toLocaleString`. */
+function formatLastRunStable(iso: string): string {
+  if (iso.length >= 16) return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+  return iso;
+}
+
 function sessionsDiffer(
   last: { objective: string; tickers: string[] },
   current: { objective: string; tickers: string[] }
@@ -92,12 +99,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { session } = useLedgerSession();
   const { preference, cycle } = useThemePreference();
   const themeMeta = THEME_META[preference];
+  const mounted = useClientMounted();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     try {
       if (typeof window !== "undefined" && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1") {
-        setSidebarCollapsed(true);
+        queueMicrotask(() => setSidebarCollapsed(true));
       }
     } catch {
       /* ignore */
@@ -122,12 +130,21 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const currentDiffersFromLast =
     lo != null && sessionsDiffer(lo, session);
 
+  const lastRunLabel = lo
+    ? mounted
+      ? new Date(lo.at).toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : formatLastRunStable(lo.at)
+    : null;
+
   const sessionTooltip = [
     `Session · ${objectiveLabel(displayObjective)}`,
     `${displayTickerCount} ticker${displayTickerCount === 1 ? "" : "s"}`,
-    lo
-      ? `Last run ${new Date(lo.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
-      : null,
+    lo ? `Last run ${lastRunLabel}` : null,
     currentDiffersFromLast
       ? `Current: ${objectiveLabel(session.objective)} · ${session.tickers.length} tickers`
       : null,
@@ -248,13 +265,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   {lo ? (
                     <span className="text-ql-on-surface-variant/70">
                       {" "}
-                      ·{" "}
-                      {new Date(lo.at).toLocaleString([], {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      · {lastRunLabel}
                     </span>
                   ) : null}
                 </p>

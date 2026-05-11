@@ -206,6 +206,9 @@ interface HealthData {
   dependencies?: Record<string, unknown>;
 }
 
+/** API tile in System Status grid — avoid showing Offline while the first health request is in flight. */
+type DashboardApiTileStatus = "checking" | "online" | "offline";
+
 interface OptResult {
   weights?: number[];
   sharpe_ratio?: number;
@@ -233,6 +236,8 @@ export default function DashboardPage(props: NextClientPageProps) {
   const { session, setLastOptimize, setUniverse } = useLedgerSession();
 
   const [health, setHealth] = useState<HealthData | null>(null);
+  const [apiTileStatus, setApiTileStatus] =
+    useState<DashboardApiTileStatus>("checking");
   const [result, setResult] = useState<OptResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [regime, setRegime] = useState<RegimeResult | null>(null);
@@ -249,9 +254,34 @@ export default function DashboardPage(props: NextClientPageProps) {
   ]);
 
   useEffect(() => {
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled) {
+        setApiTileStatus((s) => (s === "checking" ? "offline" : s));
+      }
+    }, 5000);
+
     healthCheck()
-      .then((d) => setHealth(d))
-      .catch(() => setHealth({ status: "unreachable" }));
+      .then((d) => {
+        if (!cancelled) {
+          setHealth(d);
+          setApiTileStatus(d.status === "healthy" ? "online" : "offline");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHealth({ status: "unreachable" });
+          setApiTileStatus("offline");
+        }
+      })
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+      });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -552,7 +582,7 @@ export default function DashboardPage(props: NextClientPageProps) {
             Sector Allocation
           </h3>
           <p className="text-ql-on-surface-variant text-xs mb-6">
-            Aggregation of holdings by industry sector. Shows where the portfolio's risk and capital are concentrated — useful for spotting unintended tilts.
+            Aggregation of holdings by industry sector. Shows where the portfolio&apos;s risk and capital are concentrated — useful for spotting unintended tilts.
           </p>
           <div className="space-y-3">
             {result?.sector_allocation?.length ? (
@@ -590,8 +620,18 @@ export default function DashboardPage(props: NextClientPageProps) {
             {[
               {
                 label: "API",
-                value: health?.status === "healthy" ? "Online" : "Offline",
-                color: health?.status === "healthy" ? "text-ql-tertiary" : "text-ql-error",
+                value:
+                  apiTileStatus === "checking"
+                    ? "Checking…"
+                    : apiTileStatus === "online"
+                      ? "Online"
+                      : "Offline",
+                color:
+                  apiTileStatus === "checking"
+                    ? "text-ql-on-surface-variant"
+                    : apiTileStatus === "online"
+                      ? "text-ql-tertiary"
+                      : "text-ql-error",
                 desc: "Flask backend — handles optimize, backtest, and config requests",
               },
               {

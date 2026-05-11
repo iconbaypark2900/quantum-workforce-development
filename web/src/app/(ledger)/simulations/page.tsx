@@ -83,14 +83,20 @@ function WalkForwardSummaryCard({ label, value }: { label: string; value: string
 
 export default function SimulationsPage(props: NextClientPageProps) {
   useNextPageProps(props);
-  const { scenarios, error, runComparison } = useSimulationComparison();
+  const { scenarios, running, error, runComparison, scenarioTotal } =
+    useSimulationComparison();
 
   useEffect(() => {
     void runComparison();
   }, [runComparison]);
 
-  const bestSharpe = Math.max(...scenarios.map((s) => s.sharpe), 0.001);
-  const baseVol = scenarios.length ? scenarios[0].vol / 100 : 0.15;
+  const okScenarios = scenarios.filter((s) => s.ok);
+  const bestSharpe =
+    okScenarios.length > 0
+      ? Math.max(...okScenarios.map((s) => s.sharpe), 0.001)
+      : 0.001;
+  const firstOk = scenarios.find((s) => s.ok);
+  const baseVol = firstOk ? firstOk.vol / 100 : 0.15;
 
   const [wfTickers, setWfTickers] = useState("AAPL, MSFT, GOOGL, AMZN, META");
   const [wfStart, setWfStart] = useState("2020-01-01");
@@ -144,14 +150,26 @@ export default function SimulationsPage(props: NextClientPageProps) {
         </div>
       )}
 
-      {/* Strategy comparison table */}
-      {scenarios.length > 0 && (
+      {/* Strategy comparison table — progressive rows as each sequential optimize completes */}
+      {(running || scenarios.length > 0) && (
         <div className="bg-ql-surface-low rounded-xl p-6 overflow-x-auto">
           <h3 className="font-headline text-lg font-bold mb-1">
             Strategy Comparison
           </h3>
-          <p className="text-ql-on-surface-variant text-xs mb-4">
-            All objectives run against the same universe and covariance matrix. <strong>BEST</strong> marks the highest Sharpe in this batch. Shows how each method trades off return, risk, and diversification.
+          <p className="text-ql-on-surface-variant text-xs mb-4 flex flex-wrap items-center gap-2">
+            {running ? (
+              <span
+                className="inline-flex items-center rounded-full border border-ql-outline-variant bg-ql-surface-container px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ql-on-surface"
+                aria-live="polite"
+              >
+                Running {scenarios.length} of {scenarioTotal}…
+              </span>
+            ) : null}
+            <span>
+              All objectives run against the same universe and covariance matrix.{" "}
+              <strong>BEST</strong> marks the highest Sharpe among successful runs.
+              Shows how each method trades off return, risk, and diversification.
+            </span>
           </p>
           <table className="w-full text-sm font-mono">
             <thead>
@@ -171,43 +189,70 @@ export default function SimulationsPage(props: NextClientPageProps) {
               </tr>
             </thead>
             <tbody>
-              {scenarios
-                .sort((a, b) => b.sharpe - a.sharpe)
-                .map((s) => {
-                  const isBest = s.sharpe >= bestSharpe - 0.001;
-                  return (
-                    <tr
-                      key={s.objective}
-                      className="hover:bg-ql-surface-container/40 transition-colors"
-                    >
-                      <td className="py-3 font-bold">
-                        {s.name}
-                        {isBest && (
-                          <span className="ml-2 text-[9px] bg-ql-tertiary/10 text-ql-tertiary px-1.5 py-0.5 rounded font-bold">
-                            BEST
-                          </span>
-                        )}
-                      </td>
-                      <td
-                        className={`py-3 text-right ${
-                          isBest ? "text-ql-tertiary" : ""
-                        }`}
+              {scenarios.length === 0 && running ? (
+                [0, 1, 2].map((i) => (
+                  <tr key={`sk-${i}`} className="border-b border-ql-outline-variant/40">
+                    <td colSpan={5} className="py-3">
+                      <div className="h-4 w-full max-w-md rounded bg-ql-outline-variant/25 animate-pulse" />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                scenarios
+                  .slice()
+                  .sort((a, b) => b.sharpe - a.sharpe)
+                  .map((s) => {
+                    const isBest =
+                      s.ok && s.sharpe >= bestSharpe - 0.001;
+                    return (
+                      <tr
+                        key={s.objective}
+                        className="hover:bg-ql-surface-container/40 transition-colors"
                       >
-                        {s.sharpe.toFixed(3)}
-                      </td>
-                      <td className="py-3 text-right">{s.ret.toFixed(1)}%</td>
-                      <td className="py-3 text-right">{s.vol.toFixed(1)}%</td>
-                      <td className="py-3 text-right">{s.nActive}</td>
-                    </tr>
-                  );
-                })}
+                        <td className="py-3 font-bold">
+                          {s.name}
+                          {!s.ok ? (
+                            <span className="ml-2 text-[9px] bg-ql-error/15 text-ql-error px-1.5 py-0.5 rounded font-bold">
+                              FAILED
+                            </span>
+                          ) : null}
+                          {isBest && s.ok ? (
+                            <span className="ml-2 text-[9px] bg-ql-tertiary/10 text-ql-tertiary px-1.5 py-0.5 rounded font-bold">
+                              BEST
+                            </span>
+                          ) : null}
+                        </td>
+                        <td
+                          className={`py-3 text-right ${
+                            isBest && s.ok ? "text-ql-tertiary" : ""
+                          } ${!s.ok ? "text-ql-error" : ""}`}
+                        >
+                          {s.ok ? s.sharpe.toFixed(3) : "—"}
+                        </td>
+                        <td
+                          className={`py-3 text-right ${!s.ok ? "text-ql-error/90" : ""}`}
+                        >
+                          {s.ok ? `${s.ret.toFixed(1)}%` : "—"}
+                        </td>
+                        <td
+                          className={`py-3 text-right ${!s.ok ? "text-ql-error/90" : ""}`}
+                        >
+                          {s.ok ? `${s.vol.toFixed(1)}%` : "—"}
+                        </td>
+                        <td className={`py-3 text-right ${!s.ok ? "text-ql-error/90" : ""}`}>
+                          {s.ok ? s.nActive : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })
+              )}
             </tbody>
           </table>
         </div>
       )}
 
       {/* Efficient frontier scatter */}
-      {scenarios.length > 0 && (
+      {(running || okScenarios.length > 0) && (
         <div className="bg-ql-surface-low rounded-xl p-6">
           <h3 className="font-headline text-lg font-bold mb-1">
             Efficient Frontier
@@ -215,14 +260,20 @@ export default function SimulationsPage(props: NextClientPageProps) {
           <p className="text-ql-on-surface-variant text-xs mb-4">
             Risk vs return for each objective. Higher and further left = better risk-adjusted performance.
           </p>
-          <EfficientFrontierChart
-            points={scenarios.map((s) => ({
-              objective: s.name,
-              volatility: s.vol,
-              expected_return: s.ret,
-              sharpe: s.sharpe,
-            }))}
-          />
+          {okScenarios.length > 0 ? (
+            <EfficientFrontierChart
+              points={okScenarios.map((s) => ({
+                objective: s.name,
+                volatility: s.vol,
+                expected_return: s.ret,
+                sharpe: s.sharpe,
+              }))}
+            />
+          ) : (
+            <div className="h-48 rounded-lg border border-ql-outline-variant/40 bg-ql-surface-container/30 flex items-center justify-center text-sm text-ql-on-surface-variant animate-pulse">
+              Awaiting first successful optimization…
+            </div>
+          )}
         </div>
       )}
 

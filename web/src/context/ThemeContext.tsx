@@ -61,11 +61,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [resolved, setResolved] = useState<ResolvedTheme>("dark");
 
   useEffect(() => {
-    const stored = readStored();
-    setPreferenceState(stored);
-    const r = resolve(stored);
-    setResolved(r);
-    applyToDocument(r);
+    queueMicrotask(() => {
+      const stored = readStored();
+      setPreferenceState(stored);
+      const r = resolve(stored);
+      setResolved(r);
+      applyToDocument(r);
+    });
   }, []);
 
   useEffect(() => {
