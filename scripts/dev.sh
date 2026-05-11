@@ -45,6 +45,17 @@ if [[ -f "$VENV/bin/activate" ]]; then
   source "$VENV/bin/activate"
 fi
 
+# Auto-load repo-root .env.local for the Flask process (TIINGO_API_KEY, API_KEY, etc.).
+# Flask itself does not load dotenv; sourcing here keeps Tiingo/Vercel envs in scope
+# without forcing every operator to remember `set -a && source .env.local`.
+if [[ -f "$ROOT/.env.local" ]]; then
+  echo "[dev] Sourcing $ROOT/.env.local"
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT/.env.local"
+  set +a
+fi
+
 API_PORT="${PORT:-5000}"
 NEXT_PORT="${NEXT_PORT:-3000}"
 export PORT="$API_PORT"

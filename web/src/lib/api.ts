@@ -479,27 +479,17 @@ export async function listJobs(limit = 20) {
   };
 }
 
-/**
- * Subscribe to SSE status updates for a lab run.
- * Returns a cleanup function that closes the EventSource.
- */
-export function streamRun(
-  runId: string,
-  onStatus: (status: string) => void
-): () => void {
-  const base = api.defaults.baseURL ?? "";
-  const url = `${base}/api/runs/${encodeURIComponent(runId)}/stream`;
-  const es = new EventSource(url);
-  es.onmessage = (e) => {
-    try {
-      const d = JSON.parse(e.data);
-      onStatus(d.status);
-    } catch {
-      /* ignore parse errors */
-    }
-  };
-  return () => es.close();
-}
+// NOTE: The Flask backend exposes `GET /api/runs/<id>/stream` (SSE).
+// We previously had a `streamRun(runId, onStatus)` helper here that wrapped
+// `new EventSource(url)`, but no client called it: the only consumer
+// (`reports/runs/[id]/page.tsx`) uses interval polling via `getLabRun`.
+// Native `EventSource` cannot attach the `X-API-Key` header that the rest of
+// the API requires, so wiring SSE into the page would 401 against any
+// API_KEY-protected deploy without first switching auth to cookies or query
+// params. Removed to keep `npm run lint` clean and stop dead code from
+// pretending the SSE path is plumbed. If SSE is needed later, re-add behind
+// an auth scheme that survives `EventSource` (cookie session, signed URL,
+// or `eventsource-polyfill`/`fetch-event-source` with custom headers).
 
 /**
  * Download a server-rendered PDF report for a lab run.

@@ -217,6 +217,9 @@ export default function SensitivityLabPanel({
     const nn = data.assets.length;
     setWeights(Array.from({ length: nn }, () => 1 / nn));
     setWeightsDirty(false);
+    // `universeKey` already changes whenever `data.assets` changes (ticker list);
+    // adding `data.assets.length` would re-fire on no-op renders. Intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [universeKey]);
 
   const metrics = useMemo(() => {

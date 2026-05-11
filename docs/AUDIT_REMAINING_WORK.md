@@ -59,12 +59,12 @@ Use this file as a human checklist; keep JSON/MD audit artifacts in sync when yo
 | Portfolio async jobs | `/quantum` | `POST /api/jobs/optimize` + poll `GET /api/jobs/{id}` | **pass** (API harness) |
 | Walk-forward backtest | `/simulations` | `POST /api/backtest/walkforward` small window | **pass** (used **train_months ≥ 6** per API; yfinance when no Tiingo key) |
 | PDF report | `/reports/runs/{id}` | Completed run + `GET /api/export/report/{id}.pdf` | **pass** (WeasyPrint on this host) |
-| Live market (Tiingo) | `/portfolio`, `/health-check` | `TIINGO_API_KEY` + `POST /api/market-data` | **blocked** — add key to **root** `.env.local`, restart Flask, re-assert `provider` |
+| Live market (Tiingo) | `/portfolio`, `/health-check` | `TIINGO_API_KEY` + `POST /api/market-data` | **blocked → ready to verify** — key added to root `.env.local`; `scripts/dev.sh` now auto-sources `.env.local` before launching Flask. Restart Flask (`./scripts/dev.sh --api-only`), then `./scripts/audit-web.sh --with-tiingo` and promote JSON to `pass` if `provider == "tiingo"`. |
 
 **Port 3042 / proxy mode**
 
 - [x] **Documented & smoke-tested:** `audited_ports: [3000, 3042]`, `:3042` via `next start` after proxy-mode build (`NEXT_PUBLIC_API_URL="" npm run build`) — **not** alongside a second `next dev` on the same `web/` tree (Next singleton lock). See [`PAGE_AUDIT.md`](PAGE_AUDIT.md).
-- [ ] Optional: repeatable script (`scripts/audit-web.sh`-style) to regenerate port-3042 checks without manual steps.
+- [x] **Repeatable script added:** `scripts/audit-web.sh` regenerates `docs/page-audit-run.json` (pages + optional manual flows). Pass `NEXT_PORT=3042` for proxy-mode probes. See `--with-tiingo / --with-async / --with-backtest / --with-ibm` flags.
 
 ---
 
@@ -72,9 +72,9 @@ Use this file as a human checklist; keep JSON/MD audit artifacts in sync when yo
 
 | Item | Action | Done? |
 | --- | --- | --- |
-| `streamRun` orphan | Wire `GET /api/runs/<id>/stream` into `/reports/runs/[id]` (SSE vs polling) **or** remove dead client helper | [ ] |
-| Audit reproducibility | Script or Playwright-lite driver to regenerate `docs/page-audit.json` deltas | [ ] |
-| `web` lint gate | Fix `quantum/page.tsx` (`react/no-unescaped-entities`, unused var) so `npm run lint` is green | [ ] |
+| `streamRun` orphan | Wire `GET /api/runs/<id>/stream` into `/reports/runs/[id]` (SSE vs polling) **or** remove dead client helper | [x] **Removed** — native `EventSource` cannot attach `X-API-Key`, so the helper would 401 against any protected deploy. Page already polls `getLabRun`. Note left in `web/src/lib/api.ts` explaining the trade-off and what an SSE re-introduction would require. |
+| Audit reproducibility | Script or Playwright-lite driver to regenerate `docs/page-audit.json` deltas | [x] `scripts/audit-web.sh` added; writes `docs/page-audit-run.json` for diff-and-promote. |
+| `web` lint gate | Fix `quantum/page.tsx` (`react/no-unescaped-entities`, unused var) so `npm run lint` is green | [x] **Edited** — `you're` → `you&apos;re` in Telemetry strip; removed unused `setActiveTenant` destructure. Run `cd web && npm run lint` to confirm. |
 | `tsc` / tests | Resolve existing `src/lib/*.test.ts` typing noise if repo-wide typecheck matters | [ ] |
 | CI | Optional non-blocking job to run audit script vs on-demand only (align with `.github/workflows/ci.yml`) | [ ] |
 | Tenant header proof | Optionally capture `X-Tenant-Id` on proxied `:3042` requests in tooling | [ ] |

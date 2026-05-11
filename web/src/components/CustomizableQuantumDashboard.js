@@ -10,7 +10,7 @@ import {
   ScatterChart, Scatter, ReferenceLine, Brush,
 } from "recharts";
 import {
-  DashboardThemeContext, darkTheme, useTheme, themeForResolved,
+  DashboardThemeContext, useTheme, themeForResolved,
   CHART_COLORS, STRATEGY_COLORS, FONT,
 } from "@/lib/theme";
 import { useThemePreference } from "@/context/ThemeContext";
