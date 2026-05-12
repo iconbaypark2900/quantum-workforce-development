@@ -103,7 +103,9 @@ class TestTiingoProvider:
     def test_fetch_prices_raises_if_all_tickers_fail(self, mock_get):
         mock_get.side_effect = Exception("network error")
         provider = self._make_provider()
-        with pytest.raises(ValueError, match="no price data"):
+        # Still a ValueError for backwards compat, now also a TiingoInvalidTickerError.
+        from services.data_provider_v2 import TiingoInvalidTickerError
+        with pytest.raises(TiingoInvalidTickerError, match="no price data"):
             provider.fetch_prices(["AAPL", "MSFT"], "2023-01-01", "2023-12-31")
 
     @patch("services.data_provider_v2.TiingoProvider._get")
@@ -279,3 +281,171 @@ class TestMarketDataProviderWithTiingo:
 
         mock_yf.assert_not_called()
         assert out["AAPL"]["sector"] == "Unknown"
+
+
+# ── Typed error path tests (Gap #2: Tiingo error surfacing) ──────────────────
+
+class TestTiingoErrorClasses:
+    """Verify ``MarketDataError`` subclasses are raised for the failure modes
+    the UI surfaces with a specific banner: no API key, invalid token,
+    persistent rate-limit, and "no data for any ticker"."""
+
+    def _make_response(self, status_code: int, payload=None):
+        """Build a ``requests.Response``-shaped mock."""
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.json.return_value = payload or {}
+
+        def _raise_for_status():
+            if 400 <= status_code:
+                from requests.exceptions import HTTPError
+                raise HTTPError(f"{status_code} error")
+
+        resp.raise_for_status.side_effect = _raise_for_status
+        return resp
+
+    def test_auth_error_on_401(self, monkeypatch):
+        """401 from Tiingo → ``TiingoAuthError`` (no retry)."""
+        monkeypatch.setenv("TIINGO_API_KEY", "bad-key")
+        from services.data_provider_v2 import TiingoAuthError, TiingoProvider
+        provider = TiingoProvider()
+
+        # ``import requests`` is local inside _get(), so patch the global module.
+        with patch("requests.get", return_value=self._make_response(401)):
+            with pytest.raises(TiingoAuthError, match="TIINGO_API_KEY"):
+                provider._get("https://example/test", {})
+
+    def test_auth_error_on_403(self, monkeypatch):
+        monkeypatch.setenv("TIINGO_API_KEY", "no-perm")
+        from services.data_provider_v2 import TiingoAuthError, TiingoProvider
+        provider = TiingoProvider()
+
+        with patch("requests.get", return_value=self._make_response(403)):
+            with pytest.raises(TiingoAuthError):
+                provider._get("https://example/test", {})
+
+    def test_rate_limit_error_after_retries(self, monkeypatch):
+        """All retries return 429 → ``TiingoRateLimitError`` (not silent empty dict)."""
+        monkeypatch.setenv("TIINGO_API_KEY", "ok")
+        from services.data_provider_v2 import TiingoProvider, TiingoRateLimitError
+        provider = TiingoProvider()
+
+        with patch("requests.get", return_value=self._make_response(429)):
+            with patch("services.data_provider_v2.time.sleep"):  # don't actually sleep
+                with pytest.raises(TiingoRateLimitError, match="rate limit"):
+                    provider._get("https://example/test", {})
+
+    def test_invalid_ticker_error_when_all_tickers_empty(self, monkeypatch):
+        """All tickers return empty data → ``TiingoInvalidTickerError``."""
+        monkeypatch.setenv("TIINGO_API_KEY", "ok")
+        from services.data_provider_v2 import TiingoInvalidTickerError, TiingoProvider
+        provider = TiingoProvider()
+
+        with patch.object(provider, "_get", return_value=[]):
+            with pytest.raises(TiingoInvalidTickerError):
+                provider.fetch_prices(["AAPL", "MSFT"], "2023-01-01", "2023-12-31")
+
+    def test_fetch_prices_propagates_auth_error(self, monkeypatch):
+        """If ``_get`` raises auth error on first ticker, no point trying others."""
+        monkeypatch.setenv("TIINGO_API_KEY", "bad")
+        from services.data_provider_v2 import TiingoAuthError, TiingoProvider
+        provider = TiingoProvider()
+
+        with patch.object(provider, "_get", side_effect=TiingoAuthError("bad token")):
+            with pytest.raises(TiingoAuthError):
+                provider.fetch_prices(["AAPL", "MSFT"], "2023-01-01", "2023-12-31")
+
+    def test_no_api_key_raises_when_no_fallback(self, monkeypatch):
+        """Tiingo primary, no key, fallback disabled → ``TiingoNoApiKeyError``."""
+        monkeypatch.delenv("TIINGO_API_KEY", raising=False)
+        monkeypatch.setenv("DATA_PROVIDER", "tiingo")
+        from services.data_provider_v2 import MarketDataProvider, TiingoNoApiKeyError
+
+        provider = MarketDataProvider(provider="tiingo", fallback=False)
+        with pytest.raises(TiingoNoApiKeyError, match="TIINGO_API_KEY"):
+            provider.fetch_market_data(["AAPL"], "2023-01-01", "2023-12-31")
+
+    def test_typed_error_preserved_through_market_data_provider(self, monkeypatch):
+        """``MarketDataProvider`` re-raises typed errors so the API layer can
+        map ``code`` → HTTP status, even with fallback enabled when no other
+        providers are available."""
+        monkeypatch.setenv("TIINGO_API_KEY", "ok")
+        monkeypatch.setenv("DATA_PROVIDER", "tiingo")
+        from services.data_provider_v2 import MarketDataProvider, TiingoRateLimitError
+
+        provider = MarketDataProvider(provider="tiingo", fallback=True)
+        # Mark all non-Tiingo providers as unavailable so fallback exhausts.
+        for name in ("yfinance", "alpaca", "polygon"):
+            provider._providers[name].is_available = lambda: False  # type: ignore[method-assign]
+
+        with patch.object(provider._providers["tiingo"], "fetch_prices",
+                          side_effect=TiingoRateLimitError("rate limited")):
+            with pytest.raises(TiingoRateLimitError):
+                provider.fetch_market_data(["AAPL"], "2023-01-01", "2023-12-31")
+
+
+# ── API endpoint contract test (Gap #2: structured error response) ──────────
+
+class TestMarketDataEndpointErrorContract:
+    """Smoke-test that ``/api/market-data`` maps typed errors to the documented
+    HTTP statuses and codes, without exercising the full Flask app."""
+
+    @pytest.fixture
+    def client(self):
+        os.environ.setdefault("API_KEY", "test-api-key")
+        from api.app import app
+        app.config["TESTING"] = True
+        with app.test_client() as c:
+            yield c
+
+    def _headers(self):
+        return {"X-API-Key": os.environ["API_KEY"], "Content-Type": "application/json"}
+
+    def test_no_api_key_returns_503_with_structured_code(self, client, monkeypatch):
+        from services.data_provider_v2 import TiingoNoApiKeyError
+        with patch("api.app.fetch_market_data",
+                   side_effect=TiingoNoApiKeyError("no key")):
+            res = client.post(
+                "/api/market-data",
+                json={"tickers": ["AAPL"]},
+                headers=self._headers(),
+            )
+        assert res.status_code == 503
+        body = res.get_json()
+        assert body["error"]["code"] == "TIINGO_NO_API_KEY"
+
+    def test_rate_limited_returns_429(self, client):
+        from services.data_provider_v2 import TiingoRateLimitError
+        with patch("api.app.fetch_market_data",
+                   side_effect=TiingoRateLimitError("rate")):
+            res = client.post(
+                "/api/market-data",
+                json={"tickers": ["AAPL"]},
+                headers=self._headers(),
+            )
+        assert res.status_code == 429
+        assert res.get_json()["error"]["code"] == "TIINGO_RATE_LIMITED"
+
+    def test_invalid_ticker_returns_400_with_specific_code(self, client):
+        from services.data_provider_v2 import TiingoInvalidTickerError
+        with patch("api.app.fetch_market_data",
+                   side_effect=TiingoInvalidTickerError("none")):
+            res = client.post(
+                "/api/market-data",
+                json={"tickers": ["XYZ"]},
+                headers=self._headers(),
+            )
+        assert res.status_code == 400
+        assert res.get_json()["error"]["code"] == "TIINGO_INVALID_TICKER"
+
+    def test_auth_failed_returns_503(self, client):
+        from services.data_provider_v2 import TiingoAuthError
+        with patch("api.app.fetch_market_data",
+                   side_effect=TiingoAuthError("bad token")):
+            res = client.post(
+                "/api/market-data",
+                json={"tickers": ["AAPL"]},
+                headers=self._headers(),
+            )
+        assert res.status_code == 503
+        assert res.get_json()["error"]["code"] == "TIINGO_AUTH_FAILED"

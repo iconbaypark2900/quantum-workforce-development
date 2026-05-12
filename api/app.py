@@ -58,7 +58,12 @@ from services.auth import (
 )
 
 # Import market data service (multi-provider: Tiingo (default), Alpaca, Polygon, yfinance fallback)
-from services.data_provider_v2 import MarketDataProvider, fetch_market_data, fetch_price_panel
+from services.data_provider_v2 import (
+    MarketDataError,
+    MarketDataProvider,
+    fetch_market_data,
+    fetch_price_panel,
+)
 from services.market_data import validate_tickers
 
 # Import backtesting service
@@ -819,7 +824,21 @@ def get_market_data():
         cache_set(ck, market_data)
         
         return success_response(market_data)
-        
+
+    except MarketDataError as e:
+        # Typed market-data failures carry a stable ``code`` the frontend uses
+        # to render an actionable banner ("set TIINGO_API_KEY", "switch to
+        # synthetic mode", "rate limit — back off"). Catch BEFORE ValueError
+        # since MarketDataError is a ValueError subclass.
+        status_map = {
+            'TIINGO_NO_API_KEY': 503,
+            'TIINGO_AUTH_FAILED': 503,
+            'TIINGO_RATE_LIMITED': 429,
+            'TIINGO_INVALID_TICKER': 400,
+        }
+        code = getattr(e, 'code', 'MARKET_DATA_FETCH_FAILED')
+        status = status_map.get(code, 502)
+        return error_response(str(e), code=code, status=status)
     except ValueError as e:
         return error_response(str(e), code='BAD_REQUEST', status=400)
     except Exception as e:

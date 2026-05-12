@@ -48,6 +48,45 @@ def _metadata_sector_merge_yfinance_enabled() -> bool:
     return os.getenv("METADATA_SECTOR_SOURCE", "").strip().lower() == "yfinance"
 
 
+# ─── Structured market-data errors ──────────────────────────────────────────
+#
+# Subclasses of ValueError so existing ``except ValueError`` paths keep working,
+# but they expose a ``code`` attribute that the API layer maps to a specific
+# HTTP status and that the frontend uses to render an actionable banner
+# (e.g. "TIINGO_NO_API_KEY" → "Switch to synthetic mode" CTA).
+#
+# The string codes are part of the API contract — clients pattern-match on them.
+
+class MarketDataError(ValueError):
+    """Base for market-data fetch failures with a structured ``code``."""
+
+    code = "MARKET_DATA_FETCH_FAILED"
+
+
+class TiingoNoApiKeyError(MarketDataError):
+    """Tiingo selected as primary provider but ``TIINGO_API_KEY`` is unset."""
+
+    code = "TIINGO_NO_API_KEY"
+
+
+class TiingoAuthError(MarketDataError):
+    """Tiingo returned 401/403 — token missing, revoked, or unauthorized."""
+
+    code = "TIINGO_AUTH_FAILED"
+
+
+class TiingoRateLimitError(MarketDataError):
+    """Tiingo returned 429 across all retries — rate limit reached."""
+
+    code = "TIINGO_RATE_LIMITED"
+
+
+class TiingoInvalidTickerError(MarketDataError):
+    """Tiingo returned no price data for any requested ticker."""
+
+    code = "TIINGO_INVALID_TICKER"
+
+
 class DataProvider(ABC):
     """Abstract base class for market data providers."""
     
@@ -269,35 +308,63 @@ class TiingoProvider(DataProvider):
         return self._available
 
     def _get(self, url: str, params: dict, timeout: int = 30) -> dict:
-        """HTTP GET with retry on 429."""
+        """HTTP GET with retry on 429.
+
+        Raises typed ``MarketDataError`` subclasses for failures the UI needs
+        to surface specifically:
+
+        * 401/403 → :class:`TiingoAuthError` (no retry — token won't unbreak)
+        * 429 across all retries → :class:`TiingoRateLimitError`
+        """
         try:
             import requests
         except ImportError as exc:
             raise ImportError("requests is required for TiingoProvider: pip install requests") from exc
 
         params = dict(params, token=self.api_key)
+        rate_limited = False
         for attempt in range(self._MAX_RETRIES):
             try:
                 resp = requests.get(url, params=params, timeout=timeout)
+                if resp.status_code in (401, 403):
+                    raise TiingoAuthError(
+                        f"Tiingo rejected the request ({resp.status_code}); "
+                        f"check that TIINGO_API_KEY is valid"
+                    )
                 if resp.status_code == 429:
+                    rate_limited = True
                     wait = 2 ** attempt
-                    logger.warning("Tiingo rate-limit (429); retrying in %ds (attempt %d)", wait, attempt + 1)
+                    logger.warning(
+                        "Tiingo rate-limit (429); retrying in %ds (attempt %d)",
+                        wait,
+                        attempt + 1,
+                    )
                     time.sleep(wait)
                     continue
                 resp.raise_for_status()
                 return resp.json()
+            except TiingoAuthError:
+                raise
             except Exception as exc:
                 if attempt == self._MAX_RETRIES - 1:
                     raise
                 time.sleep(2 ** attempt)
                 logger.debug("Tiingo request error (attempt %d): %s", attempt + 1, exc)
+        if rate_limited:
+            raise TiingoRateLimitError(
+                "Tiingo rate limit reached after retries; back off and try again later"
+            )
         return {}
 
     def fetch_prices(self, tickers: List[str], start_date: str, end_date: str) -> pd.DataFrame:
         """Fetch adjusted close prices from Tiingo for each ticker.
 
         Returns a DataFrame indexed by date with one column per ticker.
-        Tickers that fail are dropped with a warning; ValueError raised if all fail.
+
+        Per-ticker failures are dropped with a warning. Global failures
+        (auth, rate limit) short-circuit and re-raise. If no tickers
+        succeed, :class:`TiingoInvalidTickerError` is raised so callers
+        can surface a "check ticker symbols" hint to the user.
         """
         series: Dict[str, pd.Series] = {}
         for ticker in tickers:
@@ -310,11 +377,16 @@ class TiingoProvider(DataProvider):
                 dates = pd.to_datetime([row["date"][:10] for row in data])
                 closes = [row.get("adjClose") or row.get("close") for row in data]
                 series[ticker] = pd.Series(closes, index=dates, name=ticker, dtype=float)
+            except (TiingoAuthError, TiingoRateLimitError):
+                # Global failures — retrying next ticker won't help.
+                raise
             except Exception as exc:
                 logger.warning("Tiingo fetch failed for %s: %s", ticker, exc)
 
         if not series:
-            raise ValueError("Tiingo returned no price data for any requested ticker")
+            raise TiingoInvalidTickerError(
+                "Tiingo returned no price data for any requested ticker"
+            )
 
         df = pd.DataFrame(series)
         df.index.name = "date"
@@ -497,6 +569,22 @@ class MarketDataProvider:
         # Try providers in order
         last_error = None
         provider_order = self._get_provider_order()
+        attempted_any = False
+
+        # Special-case: primary is Tiingo but the key is missing AND no other
+        # provider in the order is available — surface ``TIINGO_NO_API_KEY``
+        # explicitly so the UI can render a "set TIINGO_API_KEY or switch to
+        # synthetic" banner instead of a generic "all providers failed".
+        if self.primary_provider == "tiingo" and not self._providers["tiingo"].is_available():
+            other_available = any(
+                self._providers[name].is_available()
+                for name in provider_order
+                if name != "tiingo"
+            )
+            if not other_available:
+                raise TiingoNoApiKeyError(
+                    "Tiingo is the configured market-data provider but TIINGO_API_KEY is not set"
+                )
 
         for provider_name in provider_order:
             provider = self._providers.get(provider_name)
@@ -505,6 +593,7 @@ class MarketDataProvider:
                 logger.debug(f"Provider {provider_name} not available, skipping")
                 continue
 
+            attempted_any = True
             try:
                 logger.info(f"Trying {provider_name}...")
                 prices = provider.fetch_prices(tickers, start_date, end_date)
@@ -522,10 +611,21 @@ class MarketDataProvider:
                 if not self.fallback_enabled:
                     raise
 
-        # All providers failed
+        # All providers failed (or none were available).
+        if not attempted_any and self.primary_provider == "tiingo":
+            # Tiingo selected but unavailable; fallback disabled or no peers.
+            raise TiingoNoApiKeyError(
+                "Tiingo is the configured market-data provider but TIINGO_API_KEY is not set"
+            )
+
+        # Preserve the typed error from the last provider so the API layer
+        # can map it to a specific HTTP status / error code; otherwise wrap
+        # in the generic MarketDataError.
+        if isinstance(last_error, MarketDataError):
+            raise last_error
         error_msg = f"All providers failed. Last error: {last_error}"
         logger.error(error_msg)
-        raise ValueError(error_msg)
+        raise MarketDataError(error_msg)
     
     #: Maximum number of daily rows included when ``include_daily_returns=True``.
     #: 504 ≈ 2 trading years; keeps JSON response bounded.
