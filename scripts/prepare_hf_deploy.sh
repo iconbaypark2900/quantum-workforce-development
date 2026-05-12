@@ -3,7 +3,7 @@
 # Run from project root: ./scripts/prepare_hf_deploy.sh
 #
 # What it does:
-# - Copies Dockerfile.hf to Dockerfile (HF Spaces uses Dockerfile at root)
+# - Copies deploy/docker/Dockerfile.hf to Dockerfile (HF Spaces uses Dockerfile at root)
 # - Preserves the original Dockerfile as Dockerfile.production (backup)
 #
 # After running, push to your HF Space:
@@ -19,8 +19,8 @@ if [ -f Dockerfile ] && ! grep -q "serve_hf.py" Dockerfile 2>/dev/null; then
   cp Dockerfile Dockerfile.production
 fi
 
-echo "Copying Dockerfile.hf -> Dockerfile for HF Spaces"
-cp Dockerfile.hf Dockerfile
+echo "Copying deploy/docker/Dockerfile.hf -> Dockerfile for HF Spaces"
+cp deploy/docker/Dockerfile.hf Dockerfile
 
 echo "Done. Dockerfile is now configured for Hugging Face Spaces."
 echo ""

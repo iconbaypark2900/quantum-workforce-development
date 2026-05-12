@@ -2,7 +2,7 @@
 
 This roadmap turns the **HF venture** into concrete deliverables. It complements **[HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md)** (how to deploy) and **[HF_VENTURE.md](HF_VENTURE.md)** (why and for whom).
 
-**Current baseline:** `Dockerfile.hf` builds the **CRA** `frontend/`, runs **`serve_hf.py`** (Flask + static UI on port **7860**). The full product UI is **Next.js** in `web/` — not required for the lite Space.
+**Current baseline:** `deploy/docker/Dockerfile.hf` builds the **CRA** `frontend/`, runs **`serve_hf.py`** (Flask + static UI on port **7860**). The full product UI is **Next.js** in `web/` — not required for the lite Space.
 
 ---
 
@@ -55,7 +55,7 @@ This roadmap turns the **HF venture** into concrete deliverables. It complements
 
 | Option | Description | When to choose |
 |--------|-------------|----------------|
-| **A — Evolve CRA** (default) | Tighten `frontend/` for HF: hide product-only links, cap inputs, clear IBM + lab flow | Lowest churn; already in `Dockerfile.hf` |
+| **A — Evolve CRA** (default) | Tighten `frontend/` for HF: hide product-only links, cap inputs, clear IBM + lab flow | Lowest churn; already in `deploy/docker/Dockerfile.hf` |
 | **B — Gradio** | Small Python UI calling the same Flask routes — starter: **`scripts/gradio_portfolio_demo.py`** (`pip install -r deps/requirements-gradio.txt`) | Fast iteration; extra stack to maintain |
 | **C — Next in Docker** | Ship `web/` in the Space | Heavier image; reserve for explicit parity milestone |
 
@@ -67,9 +67,9 @@ This roadmap turns the **HF venture** into concrete deliverables. It complements
 
 ### Phase 0 — Baseline
 
-- [x] `Dockerfile.hf` + `serve_hf.py`; Space README **`app_port: 7860`** (see **[HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md)**).
+- [x] `deploy/docker/Dockerfile.hf` + `serve_hf.py`; Space README **`app_port: 7860`** (see **[HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md)**).
 - [x] Venture + roadmap docs (**this file**, **[HF_VENTURE.md](HF_VENTURE.md)**).
-- [x] **`REACT_APP_HF_SPACE=1`** in `Dockerfile.hf` + **`frontend/src/hfSpace.js`** for client-side HF detection (sidebar/UI can branch in later phases).
+- [x] **`REACT_APP_HF_SPACE=1`** in `deploy/docker/Dockerfile.hf` + **`frontend/src/hfSpace.js`** for client-side HF detection (sidebar/UI can branch in later phases).
 - [x] Initial Space env / build-time notes in **[HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md)** (`API_KEY`, `TIINGO_API_KEY`, `REACT_APP_HF_SPACE` bake).
 
 ### Phase 1 — Scope and harden

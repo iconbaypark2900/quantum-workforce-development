@@ -20,7 +20,7 @@ This guide explains how to host the Quantum Portfolio Lab on [Hugging Face Space
 2. **Use the HF Dockerfile**
    ```bash
    # In your quantum-hybrid-portfolio directory
-   cp Dockerfile.hf Dockerfile
+   cp deploy/docker/Dockerfile.hf Dockerfile
    ```
 
 3. **Push to the Space**
@@ -44,7 +44,7 @@ This guide explains how to host the Quantum Portfolio Lab on [Hugging Face Space
    - All Python code (`api/`, `serve_hf.py`, `config/`, `core/`, `services/`)
    - `frontend/` (entire folder)
    - `deps/requirements.txt`
-   - `Dockerfile.hf` → rename to `Dockerfile`
+   - `deploy/docker/Dockerfile.hf` → rename to `Dockerfile`
    - `huggingface/README.md` → use as `README.md` (includes HF YAML)
 
 4. Commit and push:
@@ -92,7 +92,7 @@ You can set in **Space Settings → Variables**:
 | `API_KEY` | If the Flask app enforces **`X-API-Key`**, set here to match the key your UI sends (**`REACT_APP_API_KEY`** in CRA when not same-origin-only). |
 | `TIINGO_API_KEY` | Optional — live market data when provider is Tiingo (see **`DATA_PROVIDER`** / **`AGENTS.md`**). |
 
-**Build-time (Docker stage 1):** `Dockerfile.hf` sets **`REACT_APP_HF_SPACE=1`** so the CRA bundle can detect the Space build (`frontend/src/hfSpace.js`). Not a Space “Variable” — it is fixed in the image.
+**Build-time (Docker stage 1):** `deploy/docker/Dockerfile.hf` sets **`REACT_APP_HF_SPACE=1`** so the CRA bundle can detect the Space build (`frontend/src/hfSpace.js`). Not a Space “Variable” — it is fixed in the image.
 
 ## Limits
 
@@ -103,7 +103,7 @@ You can set in **Space Settings → Variables**:
 ## Troubleshooting
 
 **Build fails**
-- Ensure `Dockerfile` (from Dockerfile.hf) exists at repo root
+- Ensure `Dockerfile` (from `deploy/docker/Dockerfile.hf`) exists at repo root
 - Check `.dockerignore` does not exclude required files
 
 **App not loading**

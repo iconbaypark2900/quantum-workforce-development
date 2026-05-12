@@ -41,10 +41,10 @@ chang_validation_report.png
 docs/specs/core_features_spec.pdf
 docs/specs/core_features_spec.docx
 
-Dockerfile
-Dockerfile.*
-docker-compose.yml
-docker-compose*.yml
+deploy/docker/Dockerfile
+deploy/docker/Dockerfile.*
+deploy/docker/docker-compose.yml
+deploy/docker/docker-compose*.yml
 
 scripts/deploy_hf_spaces.sh
 scripts/demo_dashboard_features.sh

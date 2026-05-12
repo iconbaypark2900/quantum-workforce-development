@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build backend Docker image
-        run: docker build -t quantum-portfolio-api .
+        run: docker build -f deploy/docker/Dockerfile -t quantum-portfolio-api .
 
       - name: Build frontend Docker image
         run: docker build -t quantum-portfolio-frontend ./frontend

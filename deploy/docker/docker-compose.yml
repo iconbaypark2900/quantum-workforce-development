@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
     container_name: quantum-portfolio-app
     restart: unless-stopped
     environment:
@@ -23,7 +25,7 @@ services:
       - db
       - redis
     volumes:
-      - ./logs:/app/logs
+      - ../../logs:/app/logs
     networks:
       - quantum-net
     healthcheck:
@@ -72,7 +74,8 @@ services:
       retries: 5
 
   frontend:
-    build: ./frontend
+    build:
+      context: ../../frontend
     container_name: quantum-portfolio-frontend
     # This container only exists to produce the build output.
     # nginx copies the built files via a shared volume.

@@ -121,7 +121,7 @@ Constraints include: long-only, min/max weight per asset, max turnover, optional
 - **Services:** `services/` — market data (e.g. yfinance), backtest, HRP, portfolio optimizer (unified objectives), constraints, data provider.
 - **API:** `api.py` — Flask REST API for optimize, backtest, market data, efficient frontier, ticker search, health.
 - **Frontend:** React app in `frontend/` — dashboard (holdings, benchmarks, backtest, scenarios, efficient frontier, correlation heatmap, in-app help).
-- **Deployment:** `serve_hf.py` for Hugging Face Spaces; `Dockerfile.hf` and `scripts/deploy_hf_spaces.sh` for containerized deploy.
+- **Deployment:** `serve_hf.py` for Hugging Face Spaces; `deploy/docker/Dockerfile.hf` and `scripts/deploy_hf_spaces.sh` for containerized deploy.
 
 ### 4.2 Key Parameters (Representative)
 

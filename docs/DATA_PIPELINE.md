@@ -32,7 +32,7 @@ sqlite3 data/api.sqlite3 .dump > backup_$(date +%Y%m%d).sql
 | `scripts/dev.sh` | Dev | Start Flask API + Next.js together in dev mode |
 | `scripts/run-next-web.sh` | Dev | Start Next.js on `NEXT_WEB_PORT` (default 3042) |
 | `scripts/find_port.py` | Dev | Find a free port for dev servers |
-| `scripts/prepare_hf_deploy.sh` | Ops | Build HuggingFace Space artifact (`Dockerfile.hf` path) |
+| `scripts/prepare_hf_deploy.sh` | Ops | Build HuggingFace Space artifact (`deploy/docker/Dockerfile.hf` path) |
 | `scripts/run_ibm_qa.py` | Dev/research | Run IBM Quantum smoke tests from CLI |
 | `scripts/test_api_integration.py` | CI/dev | Integration test suite against a running API |
 | `scripts/test_ibm_connection.py` | Dev | Verify IBM Quantum token connectivity |

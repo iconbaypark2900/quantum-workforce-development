@@ -81,7 +81,7 @@ The system consists of:
 
 ## Deployment
 
-- **Docker** — Dockerfile and docker-compose for containerized run
+- **Docker** — `deploy/docker/Dockerfile*` and `deploy/docker/docker-compose.yml` for containerized run
 - **Production** — JWT auth, rate limiting, Redis, PostgreSQL (see PRODUCTION_READINESS_PLAN.md)
 
 ---

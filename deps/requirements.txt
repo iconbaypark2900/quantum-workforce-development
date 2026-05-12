@@ -13,7 +13,7 @@ networkx==3.5
 matplotlib==3.10.6
 seaborn==0.13.2
 
-# PDF report generation (requires system libs: libpango, libcairo — see Dockerfile.fly)
+# PDF report generation (requires system libs: libpango, libcairo — see deploy/docker/Dockerfile.fly)
 weasyprint>=62.3
 
 # Web framework

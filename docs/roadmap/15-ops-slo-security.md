@@ -26,7 +26,7 @@ For a platform handling real quantum hardware credentials and potentially instit
 - Define SLIs and SLOs for the three core user flows
 - Add Prometheus alert rules (as code — `prometheus_rules.yml`)
 - Document encryption requirements per deployment target and add a checklist
-- Add a `Dockerfile.fly` hardening review
+- Add a `deploy/docker/Dockerfile.fly` hardening review
 - Document Redis TLS config (for the Redis-ready cache path)
 - Add `/api/health/detailed` endpoint for load balancer health checks with TTL-aware dependency checks
 
@@ -46,7 +46,7 @@ For a platform handling real quantum hardware credentials and potentially instit
 | `ops/slo.md` | New — SLI/SLO definitions |
 | `ops/encryption-checklist.md` | New — per-environment encryption review |
 | `api/app.py` | Add `/api/health/detailed` endpoint |
-| `Dockerfile.fly` | Review and harden |
+| `deploy/docker/Dockerfile.fly` | Review and harden |
 
 ---
 
@@ -221,7 +221,7 @@ def health_detailed():
    ```
    Update this gauge whenever market data is successfully fetched.
 7. **Add `quantum_jobs_pending_total` metric** when job queue (`04-quantum-job-queue.md`) is implemented.
-8. **Review `Dockerfile.fly`**:
+8. **Review `deploy/docker/Dockerfile.fly`**:
    - Confirm no secrets are baked into the image
    - Confirm non-root user is used (`USER appuser`)
    - Confirm `gunicorn --bind 0.0.0.0:5000` (not `$$PORT`)
@@ -235,7 +235,7 @@ def health_detailed():
 - [ ] `ops/encryption-checklist.md` covers all four deployment targets
 - [ ] `GET /api/health/detailed` returns structured dependency checks and `overall` status
 - [ ] `market_data_staleness_hours` Prometheus gauge is updated on every market data fetch
-- [ ] `Dockerfile.fly` runs as non-root user and does not bake secrets into the image
+- [ ] `deploy/docker/Dockerfile.fly` runs as non-root user and does not bake secrets into the image
 
 ---
 

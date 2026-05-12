@@ -48,7 +48,7 @@ There are **two** supported integration patterns:
 | [`pyproject.toml`](../pyproject.toml) | Package metadata; dynamic deps from **`deps/requirements-vercel.txt`** (for slim installs) |
 | [`deps/requirements.txt`](../deps/requirements.txt) | **Full** local/CI/Fly/Docker API image: scientific stack, tests, optional Braket, plotting, etc. |
 | [`deps/requirements-vercel.txt`](../deps/requirements-vercel.txt) | **Trimmed** API deps for Vercel serverless bundle limits; IBM Quantum pins included |
-| [`Dockerfile.fly`](../Dockerfile.fly) | Production API image: `gunicorn`, port **5000** |
+| [`deploy/docker/Dockerfile.fly`](../deploy/docker/Dockerfile.fly) | Production API image: `gunicorn`, port **5000** |
 | [`fly.toml`](../fly.toml) (repo root) | Fly.io app for **API** only |
 
 ### Next.js app
@@ -71,7 +71,7 @@ There are **two** supported integration patterns:
 
 | File | When to use |
 |------|-------------|
-| **`deps/requirements.txt`** | Local dev, CI, **Fly API** (`Dockerfile.fly`), full features |
+| **`deps/requirements.txt`** | Local dev, CI, **Fly API** (`deploy/docker/Dockerfile.fly`), full features |
 | **`deps/requirements-vercel.txt`** | **Vercel Python** project at repo root (`vercel.json` installCommand + `pip install .`) |
 | **`deps/requirements-ibm-quantum.txt`** | Reference pins for IBM stack; overlaps with vercel pins |
 
@@ -131,7 +131,7 @@ Fly note: **`NEXT_PUBLIC_*`** changes require a **rebuild** of the Next image; *
 
 ### Fly.io (two apps)
 
-- **API:** deploy from repo root with root [`fly.toml`](../fly.toml) and [`Dockerfile.fly`](../Dockerfile.fly); internal port **5000**.
+- **API:** deploy from repo root with root [`fly.toml`](../fly.toml) and [`deploy/docker/Dockerfile.fly`](../deploy/docker/Dockerfile.fly); internal port **5000**.
 - **Web:** deploy with context **`web/`** (see comments in [`web/fly.toml`](../web/fly.toml)); set **`API_PROXY_TARGET`** to the API’s **private** URL (`http://<api-app-name>.internal:5000`).
 - Pass **`NEXT_PUBLIC_API_KEY`** as a **Docker build-arg** so it matches **`API_KEY`** on the API app.
 

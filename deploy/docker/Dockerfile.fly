@@ -37,7 +37,7 @@ RUN pip install --no-cache-dir --no-deps .
 
 USER appuser
 
-# Default matches fly.toml [[http_service]] internal_port (must NOT be 7860 — that is Hugging Face / Dockerfile only).
+# Default matches fly.toml [[http_service]] internal_port (must NOT be 7860 — that is Hugging Face / deploy/docker/Dockerfile only).
 ENV PORT=5000
 
 # Fly maps 443 → fly.toml [[http_service]] internal_port (5000). Do not use shell `$PORT` here:

@@ -92,7 +92,7 @@ Additional dashboard material lives under **`dashboard/`**; the **canonical** op
 ## Deployment
 
 - **[HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md)** — Deploy to Hugging Face Spaces
-- **[../docker-compose.yml](../docker-compose.yml)** — Docker Compose configuration
+- **[../deploy/docker/docker-compose.yml](../deploy/docker/docker-compose.yml)** — Docker Compose configuration
 - **[../legacy/deploy/deploy_production.sh](../legacy/deploy/deploy_production.sh)** — Archived production deployment script (`legacy/README.md`)
 
 ## Development

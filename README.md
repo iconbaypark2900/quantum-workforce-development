@@ -196,8 +196,8 @@ pytest --cov=core --cov=services tests/
 ## Docker Deployment
 
 ```bash
-# Build and run with Docker Compose
-docker-compose up -d
+# Build and run with Docker Compose (compose file under deploy/docker/)
+docker compose -f deploy/docker/docker-compose.yml up -d
 
 # Access services
 # API: http://localhost:5000

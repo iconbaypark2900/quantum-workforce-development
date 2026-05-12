@@ -2,7 +2,7 @@
 
 This project deploys as **two separate Fly apps** that communicate over Fly's private network:
 
-- **App A** — Flask API (`api.app`), port 5000, built from `Dockerfile.fly` at repo root.
+- **App A** — Flask API (`api.app`), port 5000, built from `deploy/docker/Dockerfile.fly` (build context: repo root).
 - **App B** — Next.js web UI (`web/`), port 3000, built from `web/Dockerfile`.
 
 The browser only talks to the **Next** hostname. `web/next.config.ts` rewrites `/api/*` to the Flask API via `API_PROXY_TARGET`, so no browser-level CORS to Flask is needed.
@@ -166,7 +166,7 @@ fly deploy
 
 ```bash
 # Build and run API locally
-docker build -f Dockerfile.fly -t quantum-api-fly .
+docker build -f deploy/docker/Dockerfile.fly -t quantum-api-fly .
 docker run --rm -p 5000:5000 -e API_KEY=dev quantum-api-fly
 curl http://localhost:5000/api/health
 
@@ -213,9 +213,9 @@ Not `fly deploy --config web/fly.toml` alone. See [Monorepo and multi-environmen
 
 **Fly Doctor: “App is not listening on internal_port 7860” or 502 Bad Gateway**
 
-The **API** app (`Dockerfile.fly`) binds gunicorn to **`0.0.0.0:5000`**. `fly.toml` must use **`internal_port = 5000`** (do not use a shell `$$PORT` bind — it breaks as `638PORT` etc.).
+The **API** app (`deploy/docker/Dockerfile.fly`) binds gunicorn to **`0.0.0.0:5000`**. `fly.toml` must use **`internal_port = 5000`** (do not use a shell `$$PORT` bind — it breaks as `638PORT` etc.).
 
-- **7860** is only for **Hugging Face** / the root `Dockerfile` + `serve_hf.py`, not for Fly’s API deploy.
+- **7860** is only for **Hugging Face** / `deploy/docker/Dockerfile` + `serve_hf.py`, not for Fly’s API deploy.
 - If the dashboard or an old `fly launch` set **internal_port = 7860**, change it to **5000** (or edit `fly.toml` and run `fly deploy`).
 - After changing port, redeploy so Fly’s proxy matches the container listen port.
 

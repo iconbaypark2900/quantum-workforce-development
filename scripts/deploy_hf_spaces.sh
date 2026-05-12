@@ -32,7 +32,7 @@ rsync -a --exclude='.git' --exclude='node_modules' --exclude='frontend/node_modu
   --exclude='data/api.sqlite3' --exclude='*.sqlite3' \
   --exclude='*.docx' --exclude='*.pdf' --exclude='*.pyc' \
   "$REPO_ROOT/" ./
-cp "$REPO_ROOT/Dockerfile.hf" ./Dockerfile
+cp "$REPO_ROOT/deploy/docker/Dockerfile.hf" ./Dockerfile
 cp "$REPO_ROOT/huggingface/README.md" ./README.md
 
 echo "Committing and pushing..."

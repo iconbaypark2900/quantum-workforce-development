@@ -64,7 +64,7 @@ cp .env.example .env
 # Edit .env with your configuration
 
 # Start the services
-docker-compose up -d
+docker compose -f deploy/docker/docker-compose.yml up -d
 ```
 
 ### Production Deployment

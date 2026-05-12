@@ -112,7 +112,7 @@ Without PDF, every report consumer must perform formatting work downstream. CSV/
 
 ## Implementation Plan
 
-1. **Add `weasyprint` to `deps/requirements.txt`**. Verify it installs on Linux (it requires system libs: `libpango`, `libcairo`). Add to `Dockerfile.fly` system deps if needed:
+1. **Add `weasyprint` to `deps/requirements.txt`**. Verify it installs on Linux (it requires system libs: `libpango`, `libcairo`). Add to `deploy/docker/Dockerfile.fly` system deps if needed:
    ```dockerfile
    RUN apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2
    ```
