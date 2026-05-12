@@ -47,6 +47,9 @@ dmypy.json
 .pytype/
 .pyre/
 
+# pyenv local Python pin
+.python-version
+
 # ------------------------------------------------------------------------------
 # Jupyter
 # ------------------------------------------------------------------------------
@@ -79,7 +82,12 @@ coverage.xml
 .claude/
 
 # ------------------------------------------------------------------------------
-# IDEs (keep minimal shared VS Code tasks if desired)
+# Claire agent — local worktrees / sessions
+# ------------------------------------------------------------------------------
+.claire/
+
+# ------------------------------------------------------------------------------
+# IDEs / editor scratch (keep minimal shared VS Code tasks if desired)
 # ------------------------------------------------------------------------------
 .vscode/*
 !.vscode/tasks.json
@@ -87,6 +95,9 @@ coverage.xml
 *.swp
 *.swo
 *~
+*.bak
+*.orig
+*.tmp
 
 # ------------------------------------------------------------------------------
 # OS
@@ -107,6 +118,7 @@ Desktop.ini
 .env.*.local
 .env.production
 .env.staging
+.envrc
 !.env.example
 !**/.env.example
 
@@ -166,7 +178,7 @@ data/*.csv
 data/*.parquet
 results/
 checkpoints/
-data/api.sqlite3
+data/api.sqlite3*
 
 # ------------------------------------------------------------------------------
 # Deploy / platform local metadata

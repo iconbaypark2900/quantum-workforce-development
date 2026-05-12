@@ -64,12 +64,13 @@ The API runs at **http://localhost:5000**
 **Next.js (primary):**
 
 ```bash
-cd web
-npm install
-npm run dev
+cd web && npm install && cd ..
+./scripts/run-next-web.sh        # preferred: respects NEXT_WEB_PORT
+# or, equivalently:
+# cd web && npm run dev
 ```
 
-Dashboard opens at **http://localhost:3042** (configured via `NEXT_WEB_PORT`; defaults to 3042 to avoid conflicts with the API on 5000).
+Dashboard opens at **http://localhost:3042** (configured via `NEXT_WEB_PORT`; defaults to 3042 to avoid conflicts with the API on 5000). To start Flask + Next together in one flow, use `./scripts/dev.sh` (`--api-only` and `--next-only` flags are supported).
 
 **CRA (legacy, archived):** The original React dashboard in `frontend/` is retained for reference. To run it: `cd frontend && npm install && npm start` (http://localhost:3000).
 
@@ -145,24 +146,35 @@ curl -X POST http://localhost:5000/api/portfolio/optimize \
 
 ```
 quantum-hybrid-portfolio/
-├── api/                        # Flask REST API (see api/app.py)
+├── api/                        # Flask REST API (entrypoint: api/app.py, run via `python -m api`)
 ├── core/
-│   ├── portfolio_optimizer.py  # Unified run_optimization (hybrid, qubo_sa, vqe, etc.)
-│   ├── optimizers/             # equal_weight, markowitz, hrp, qubo_sa, vqe, hybrid_pipeline
-│   ├── quantum_inspired/       # quantum_annealing (optional)
-│   └── methods/                # HRP, QUBO-SA, VQE implementations
-├── services/
-│   ├── portfolio_optimizer.py  # Thin wrapper around core.portfolio_optimizer
-│   ├── backtest.py             # Backtesting engine
-│   ├── market_data.py          # Market data fetching
-│   └── constraints.py          # Portfolio constraints
-├── config/                     # Production settings
-├── frontend/                   # React dashboard
+│   ├── portfolio_optimizer.py  # Unified run_optimization (hybrid, qubo_sa, vqe, qaoa, ...)
+│   ├── optimizers/             # equal_weight, markowitz, hrp, qubo_sa, vqe, qaoa, hybrid_pipeline
+│   ├── classical/              # Classical optimization helpers
+│   ├── quantum/                # Quantum primitives (Estimator/Sampler glue)
+│   ├── quantum_inspired/       # QAOA, VQE risk, quantum walks, annealing, Braket backend
+│   └── orchestrator/           # End-to-end pipeline orchestration
+├── methods/                    # Optimizer implementations (HRP, QUBO-SA, VQE, QAOA, hybrid)
+├── services/                   # Business logic: portfolio_optimizer, backtest, market data
+│                               # (Tiingo via data_provider_v2), IBM Quantum, report generator
+├── web/                        # Next.js dashboard (PRIMARY UI; `scripts/run-next-web.sh`, port 3042)
+├── frontend/                   # CRA dashboard (legacy reference; port 3000)
+├── deps/                       # Python requirements manifests — see deps/README.md
+├── deploy/docker/              # Dockerfiles + compose stack — see deploy/docker/README.md
+├── scripts/                    # Operator scripts (dev.sh, run-next-web.sh, deploy_hf_spaces.sh, ...)
+├── config/                     # Application config (api_config.py, presets, settings)
+├── configs/                    # Externalized run/experiment configs
+├── data/                       # Sample CSV/Parquet; SQLite tenant DB when local
 ├── examples/                   # Code examples
-├── tests/                      # Test suite
-├── data/                       # Sample data (e.g. CSV), SQLite when used locally
-└── docs/                       # Documentation (see docs/README.md; DOCUMENTATION_INDEX.md)
+├── tests/                      # Pytest test suite
+├── benchmarks/                 # Performance benchmarks
+├── notebooks/                  # Research walkthroughs (e.g. notebooks/test.ipynb for IBM Quantum)
+├── templates/                  # Jinja2 templates for PDF reports (report.html, report.css)
+├── legacy/                     # Archived deprecated stack — see legacy/README.md
+└── docs/                       # Documentation — see docs/README.md and docs/DOCUMENTATION_INDEX.md
 ```
+
+Top-level entrypoints / config: `serve_hf.py` (HF Space), `api_config_patch.py` (objectives + presets catalog), `pyproject.toml`, `vercel.json`, `fly.toml`, `AGENTS.md`.
 
 ## Configuration
 
@@ -207,21 +219,42 @@ docker compose -f deploy/docker/docker-compose.yml up -d
 
 ## Roadmap
 
-### Phase 1 (Current)
-- [x] Hybrid pipeline, QUBO-SA, VQE optimizers
-- [x] HRP and risk parity implementations
-- [x] Interactive dashboard
-- [x] Legacy objective mapping (max_sharpe→markowitz, risk_parity→hrp)
+Detailed log of the May 2026 overhaul: **[docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md](docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md)**.
 
-### Phase 2 (In Progress)
-- [ ] Quantum linear algebra routines
-- [ ] TensorFlow Quantum integration
-- [ ] Performance benchmarking suite
+### Phase 1 — Optimizer Foundations (Complete)
+- [x] Hybrid 3-stage pipeline + QUBO-SA, VQE, QAOA, HRP, Markowitz, equal-weight, target-return
+- [x] Unified `services.portfolio_optimizer.run_optimization` entry point
+- [x] Legacy objective mapping (`max_sharpe→markowitz`, `risk_parity→hrp`)
+- [x] CRA dashboard (`frontend/`) and Next.js dashboard (`web/`)
+- [x] Repo restructure: `deps/`, `deploy/docker/`, `legacy/` + structured docs (May 2026)
 
-### Phase 3 (Planned)
-- [ ] Quantum machine learning models
-- [ ] Market regime detection
-- [ ] Full hybrid quantum-classical workflows
+### Phase 2 — Portfolio Lab + QOBLIB Overhaul (Complete, May 2026)
+- [x] Tiingo market data with `historical` / `live` / `synthetic` modes
+- [x] 250-asset curated universe + user-saved universes (Browse & Apply)
+- [x] Market regime → optimizer integration (`REGIME_OPTIMIZER_PARAMS`) + auto-detect via `GET /api/market/regime`
+- [x] Portfolio book accuracy: `capital`, `dollar_holdings`, P&L, optimizer-provenance card
+- [x] Sensitivity page: dynamic objectives, sweep config snapshot, stale-config chip, manual run button
+- [x] QOBLIB benchmarking layer (`benchmarks/qoblib/`): six solvers (classical, heuristic, qaoa_sim, hybrid_router, ibm_quantum strict, auto), fixture instance, JSON/CSV/Markdown artifacts
+- [x] Simulations page 4-tab layout (Strategy / Stress / Walk-Forward / QOBLIB)
+- [x] WeasyPrint PDF report export with hardened pre-flight errors
+
+### Phase 3 — Active Gaps (priority-ordered, from QOBLIB overhaul §"Known Gaps")
+- [ ] **High:** Real IBM Quantum job submission for QOBLIB (currently raises `NotImplementedError`)
+- [ ] **High:** Tiingo error surfacing + synthetic-mode fallback banner
+- [ ] **Medium:** `GET /api/reports/capabilities` PDF pre-flight endpoint (avoid post-click failure)
+- [ ] **Medium:** `POST /api/portfolio/sensitivity-sweep` (server-side parallel; client sweep degrades past ~50 tickers)
+- [ ] **Medium:** QAOA-sim fixture regression test + `/api/simulations/qoblib/validate` endpoint
+- [ ] **Low:** Per-card stale badges (instead of clearing `apiResult` on config change)
+- [ ] **Low:** localStorage size guard on saved universes
+- [ ] **Low:** Distinguish auth-error vs. data-error in regime auto-detect
+- [ ] **Low:** QOBLIB run history sourced from `results/qoblib/results.csv` (currently in-memory)
+- [ ] **Low:** OS-aware `scripts/install_pdf_deps.sh` for WeasyPrint native libs
+
+### Phase 4 — Research Modules (implemented; not yet wired into Lab/QOBLIB)
+- [ ] Quantum linear-algebra routines — `core/quantum_inspired/quantum_linear_algebra.py` (HHL, quantum eigvals, qiskit-based)
+- [ ] Quantum ML — `core/quantum_inspired/quantum_ml.py` (PennyLane kernels, variational classifiers)
+- [ ] Expose either via `/api` and Lab UI surfaces, plus benchmark coverage in QOBLIB
+- [ ] TensorFlow Quantum integration (not yet started)
 
 ## Research Basis
 
