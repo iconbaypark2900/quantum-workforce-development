@@ -85,7 +85,9 @@ describe("apiMarketPayloadToLabShape", () => {
 
   it("Σ reconstruction: annVol_i * annVol_j * corr_ij ≈ original covariance", () => {
     const out = apiMarketPayloadToLabShape({ ...PAYLOAD });
-    const cov = PAYLOAD.covariance as number[][];
+    // PAYLOAD is `as const`, so .covariance is readonly tuple-of-tuples;
+    // we only read it here, so a readonly view is sufficient.
+    const cov = PAYLOAD.covariance as readonly (readonly number[])[];
     const n = out.assets.length;
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {

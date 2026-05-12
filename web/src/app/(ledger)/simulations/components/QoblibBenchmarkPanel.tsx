@@ -30,7 +30,9 @@ export default function QoblibBenchmarkPanel() {
       if (!res.ok) {
         throw new Error((data.error as string) || (data.message as string) || `HTTP ${res.status}`);
       }
-      setResult(data as QoblibSolverResult);
+      // Backend response is validated server-side; cast through ``unknown``
+      // to acknowledge the intentional widening from ``Record<string, unknown>``.
+      setResult(data as unknown as QoblibSolverResult);
       setRefreshKey((k) => k + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

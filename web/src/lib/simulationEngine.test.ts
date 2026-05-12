@@ -118,7 +118,11 @@ describe("computeVaR — analytic MVN", () => {
   });
 
   it("returns zeros when data is missing", () => {
-    const out = computeVaR(null, [1], 0.95);
+    // computeVaR's defensive null-handling — exercise the runtime contract
+    // by passing null deliberately. TS-infers ``object`` from the JS impl
+    // since the JSDoc doesn't mark it nullable.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const out = computeVaR(null as any, [1], 0.95);
     expect(out.var95).toBe(0);
     expect(out.cvar).toBe(0);
   });
