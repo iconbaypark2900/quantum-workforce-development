@@ -76,7 +76,13 @@ class TestRegimeEndpoint:
         prices = _make_synthetic_prices(["SPY"], "2023-01-01", "2024-01-01", trend=0.0004)
         mock_fetch.return_value = prices
 
-        resp = client.get('/api/market/regime?tickers=SPY')
+        # Other endpoint test files (test_tiingo_provider, test_reports_capabilities,
+        # test_regime_endpoint_errors) seed ``API_KEY`` via ``os.environ.setdefault``.
+        # In a full-suite run that env var leaks here, so the request must carry
+        # the matching header. When ``API_KEY`` is unset the header is harmless.
+        api_key = os.environ.get("API_KEY")
+        headers = {"X-API-Key": api_key} if api_key else {}
+        resp = client.get('/api/market/regime?tickers=SPY', headers=headers)
         assert resp.status_code == 200
         body = resp.get_json()
         data = body.get("data", body)

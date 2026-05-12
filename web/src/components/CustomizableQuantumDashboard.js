@@ -21,7 +21,7 @@ import {
 } from "@/lib/simulationEngine";
 import {
   optimizePortfolio, setIbmQuantumToken, clearIbmQuantumToken, getIbmQuantumStatus,
-  createLabRun, fetchRegime,
+  createLabRun, fetchRegime, ApiError,
 } from "@/lib/api";
 import { usePortfolioLabMarketData } from "@/hooks/usePortfolioLabMarketData";
 import { usePortfolioLabConfig } from "@/hooks/usePortfolioLabConfig";
@@ -75,6 +75,57 @@ function getMarketDataErrorCopy(code, fallbackMessage) {
         tone: "error",
         title: "Market data fetch failed",
         body: fallbackMessage || "Couldn't load historical prices. Retry, or switch to synthetic mode for an offline demo.",
+      };
+  }
+}
+
+/**
+ * Branch regime auto-detect error copy on `ApiError.status` / `.code`.
+ * 401 means the dashboard's API key was rejected (NEXT_PUBLIC_API_KEY mismatch
+ * or unset in a production build); INSUFFICIENT_DATA means tickers are valid
+ * but the price history is too short for the detector. The Tiingo-* codes
+ * propagate from the upstream price fetch so the same banner can say "set
+ * TIINGO_API_KEY" instead of "auto-detect failed".
+ */
+function getRegimeAutoErrorCopy(status, code, fallbackMessage) {
+  if (status === 401) {
+    return {
+      tone: "config",
+      title: "Auto-detect blocked by API auth",
+      body: "The browser sent the wrong API key (or none at all) to the regime endpoint. In a production build set NEXT_PUBLIC_API_KEY to match API_KEY on the server, then reload.",
+    };
+  }
+  switch (code) {
+    case "INSUFFICIENT_DATA":
+      return {
+        tone: "input",
+        title: "Not enough market data to classify",
+        body: "The price history for these tickers is too short for the regime detector. Pick tickers with at least ~10 trading days of history (or extend the lookback window).",
+      };
+    case "TIINGO_NO_API_KEY":
+    case "TIINGO_AUTH_FAILED":
+      return {
+        tone: "config",
+        title: "Market data unavailable",
+        body: "Auto-detect needs Tiingo prices but TIINGO_API_KEY is missing or invalid on the server. Pick a regime manually, or contact your admin.",
+      };
+    case "TIINGO_RATE_LIMITED":
+      return {
+        tone: "retry",
+        title: "Tiingo rate limit reached",
+        body: "Too many price requests in a short window. Wait a moment and retry, or pick a regime manually for now.",
+      };
+    case "TIINGO_INVALID_TICKER":
+      return {
+        tone: "input",
+        title: "No price data for these tickers",
+        body: "Tiingo returned no rows for any selected symbol. Check spelling, or pick a regime manually.",
+      };
+    default:
+      return {
+        tone: "error",
+        title: "Auto-detect failed",
+        body: fallbackMessage || "The regime detector couldn't classify this universe. Pick a regime manually for now.",
       };
   }
 }
@@ -1128,6 +1179,8 @@ export default function QuantumPortfolioDashboard() {
   const [regimeAutoLoading, setRegimeAutoLoading] = useState(false);
   const [regimeAutoInfo, setRegimeAutoInfo] = useState(null);
   const [regimeAutoError, setRegimeAutoError] = useState(null);
+  const [regimeAutoErrorCode, setRegimeAutoErrorCode] = useState(null);
+  const [regimeAutoErrorStatus, setRegimeAutoErrorStatus] = useState(null);
   const [objective, setObjective] = useState("hybrid");
   const [cardinality, setCardinality] = useState(null);
   const [kScreen, setKScreen] = useState(null);
@@ -1788,6 +1841,8 @@ export default function QuantumPortfolioDashboard() {
   const handleAutoDetectRegime = useCallback(async () => {
     setRegimeAutoLoading(true);
     setRegimeAutoError(null);
+    setRegimeAutoErrorCode(null);
+    setRegimeAutoErrorStatus(null);
     try {
       const tickersForDetect = selectedTickers?.length ? selectedTickers.slice(0, 10) : ["SPY"];
       const r = await fetchRegime(tickersForDetect, "threshold");
@@ -1802,6 +1857,13 @@ export default function QuantumPortfolioDashboard() {
       });
     } catch (e) {
       setRegimeAutoError(e?.message || String(e));
+      if (e instanceof ApiError) {
+        setRegimeAutoErrorCode(e.code || null);
+        setRegimeAutoErrorStatus(e.status || null);
+      } else {
+        setRegimeAutoErrorCode(null);
+        setRegimeAutoErrorStatus(null);
+      }
     } finally {
       setRegimeAutoLoading(false);
     }
@@ -2380,11 +2442,54 @@ export default function QuantumPortfolioDashboard() {
                     {" "}(detector: {regimeAutoInfo.detector}, vol={Number.isFinite(regimeAutoInfo.vol) ? (regimeAutoInfo.vol * 100).toFixed(1) + "%" : "—"}, ret={Number.isFinite(regimeAutoInfo.ret) ? (regimeAutoInfo.ret * 100).toFixed(1) + "%" : "—"})
                   </div>
                 )}
-                {regimeAutoError && (
-                  <div style={{ fontSize: 9, color: t.red || "#f87171", fontFamily: FONT.mono, lineHeight: 1.4 }}>
-                    Auto-detect failed: {regimeAutoError}
-                  </div>
-                )}
+                {regimeAutoError && (() => {
+                  const copy = getRegimeAutoErrorCopy(
+                    regimeAutoErrorStatus,
+                    regimeAutoErrorCode,
+                    regimeAutoError,
+                  );
+                  const isWarning = copy.tone === "config" || copy.tone === "retry";
+                  const accentColor = isWarning ? (t.accentWarm || "#fbbf24") : (t.red || "#f87171");
+                  const debugChip = regimeAutoErrorCode
+                    || (regimeAutoErrorStatus ? `HTTP ${regimeAutoErrorStatus}` : null);
+                  return (
+                    <div
+                      role="alert"
+                      style={{
+                        marginTop: 4,
+                        padding: 6,
+                        borderRadius: 4,
+                        border: `1px solid ${accentColor}`,
+                        fontFamily: FONT.sans,
+                      }}
+                    >
+                      <div style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: accentColor,
+                        fontFamily: FONT.mono,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        marginBottom: 3,
+                      }}>
+                        {copy.title}
+                        {debugChip && (
+                          <span style={{
+                            marginLeft: 6,
+                            fontSize: 8,
+                            opacity: 0.7,
+                            letterSpacing: "0.02em",
+                          }}>
+                            [{debugChip}]
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 9, color: t.textMuted || "#94a3b8", lineHeight: 1.4 }}>
+                        {copy.body}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </SidebarSection>

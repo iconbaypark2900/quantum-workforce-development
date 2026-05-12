@@ -191,10 +191,17 @@ class TestMarketDataProviderWithTiingo:
         monkeypatch.setenv("TIINGO_API_KEY", "test-key")
         monkeypatch.setenv("DATA_PROVIDER", "tiingo")
 
-        # Use a simple synthetic price panel and bypass the real HTTP call
-        import importlib
-        import services.data_provider_v2 as dpv2
-        importlib.reload(dpv2)
+        # NOTE: do NOT ``importlib.reload(services.data_provider_v2)`` here.
+        # Reloading rebinds ``MarketDataError`` / ``TiingoNoApiKeyError`` to
+        # new class objects while ``api.app`` (imported earlier by other test
+        # fixtures, e.g. the regime endpoint suite) still holds references to
+        # the originals. The endpoint's ``except MarketDataError`` then no
+        # longer matches the freshly-reloaded subclass, so the contract tests
+        # below silently fall through to ``except ValueError`` and the
+        # response collapses to ``400 BAD_REQUEST``. ``MarketDataProvider``
+        # already reads env vars on each construction, so the reload was
+        # never required.
+        from services.data_provider_v2 import MarketDataProvider
 
         synthetic_prices = pd.DataFrame(
             {
@@ -204,7 +211,7 @@ class TestMarketDataProviderWithTiingo:
             index=pd.date_range("2023-01-01", periods=100, freq="B"),
         )
 
-        provider = dpv2.MarketDataProvider(provider="tiingo")
+        provider = MarketDataProvider(provider="tiingo")
 
         # Patch at the provider level so no network is hit
         with patch.object(provider._providers["tiingo"], "fetch_prices", return_value=synthetic_prices):

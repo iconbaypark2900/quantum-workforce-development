@@ -863,6 +863,25 @@ def get_market_regime():
         prices = fetch_price_panel(tickers, start_date, end_date)
         ew_returns = prices.pct_change().dropna().mean(axis=1)
         result = regime_detector.detect_regime(ew_returns, method=method)
+    except MarketDataError as exc:
+        # Tiingo / market-data failures carry their own structured code
+        # (TIINGO_NO_API_KEY, TIINGO_RATE_LIMITED, ...). Pass it through so
+        # the auto-detect button can surface "set TIINGO_API_KEY" rather
+        # than a generic "regime detection failed".
+        status_map = {
+            'TIINGO_NO_API_KEY': 503,
+            'TIINGO_AUTH_FAILED': 503,
+            'TIINGO_RATE_LIMITED': 429,
+            'TIINGO_INVALID_TICKER': 400,
+        }
+        code = getattr(exc, 'code', 'MARKET_DATA_FETCH_FAILED')
+        return error_response(str(exc), code=code, status=status_map.get(code, 502))
+    except ValueError as exc:
+        # ``regime_detector.detect_regime`` raises ValueError on
+        # "Need at least 10 return observations for regime detection".
+        # Map to 400 INSUFFICIENT_DATA so the UI can distinguish "not enough
+        # market data" from "auth failed" (Gap #8).
+        return error_response(str(exc), code="INSUFFICIENT_DATA", status=400)
     except Exception as exc:
         logger.exception("Regime detection failed")
         return error_response(f"Regime detection failed: {exc}", code="REGIME_ERROR", status=500)
