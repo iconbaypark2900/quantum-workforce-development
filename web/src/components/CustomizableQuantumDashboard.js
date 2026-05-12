@@ -648,6 +648,14 @@ function UniverseLabFacts({ snap }) {
 }
 
 const SAVED_UNIVERSES_KEY = "qp_saved_universes";
+/**
+ * Soft cap on saved universes (Gap #7). Keeps the localStorage payload well
+ * under the 5 MB browser quota even at the maximum 250-ticker universe size
+ * (~50 B/symbol × 250 × 20 ≈ 250 KB) and protects against environments with
+ * reduced quota (private browsing, embedded webviews). The user is still
+ * free to delete a saved universe to free a slot.
+ */
+const MAX_SAVED_UNIVERSES = 20;
 
 function loadSavedUniverses() {
   try {
@@ -664,7 +672,14 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
   const [saveName, setSaveName] = useState("");
   const [showSaveForm, setShowSaveForm] = useState(false);
 
+  const atSavedCap = savedUniverses.length >= MAX_SAVED_UNIVERSES;
+
   const handleSaveCurrent = useCallback(() => {
+    if (savedUniverses.length >= MAX_SAVED_UNIVERSES) {
+      // Hard-stop at the soft cap. The button is disabled in this state too,
+      // but guard here in case the form was submitted via Enter key.
+      return;
+    }
     const name = saveName.trim() || `Universe ${savedUniverses.length + 1}`;
     const tickers = currentTickers && currentTickers.length > 0
       ? currentTickers
@@ -737,12 +752,46 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
         <button
           type="button"
           onClick={() => setShowSaveForm((v) => !v)}
-          title="Save your current ticker selection as a named universe"
-          style={{ fontSize: 10, fontFamily: FONT.mono, padding: "3px 8px", borderRadius: 4, cursor: "pointer", border: `1px solid ${t.border}`, background: t.surfaceLight, color: t.textMuted }}
+          disabled={atSavedCap}
+          title={
+            atSavedCap
+              ? `Saved-universe cap reached (${MAX_SAVED_UNIVERSES}). Delete a saved universe to free a slot.`
+              : "Save your current ticker selection as a named universe"
+          }
+          style={{
+            fontSize: 10,
+            fontFamily: FONT.mono,
+            padding: "3px 8px",
+            borderRadius: 4,
+            cursor: atSavedCap ? "not-allowed" : "pointer",
+            border: `1px solid ${t.border}`,
+            background: t.surfaceLight,
+            color: t.textMuted,
+            opacity: atSavedCap ? 0.5 : 1,
+          }}
         >
           + Save current
         </button>
       </div>
+      {atSavedCap && (
+        <div
+          role="status"
+          style={{
+            fontSize: 9,
+            color: t.accentWarm,
+            fontFamily: FONT.sans,
+            lineHeight: 1.4,
+            marginBottom: 8,
+            padding: "4px 8px",
+            background: t.accentWarmDim,
+            borderRadius: 3,
+            border: `1px solid ${t.accentWarm}`,
+          }}
+        >
+          Saved-universe cap reached ({savedUniverses.length}/{MAX_SAVED_UNIVERSES}).
+          Delete one of the saved entries below to free a slot.
+        </div>
+      )}
       {showSaveForm && (
         <div style={{ display: "flex", gap: 6, marginBottom: 10, alignItems: "center" }}>
           <input
@@ -753,8 +802,8 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
             onKeyDown={(e) => e.key === "Enter" && handleSaveCurrent()}
             style={{ flex: 1, fontSize: 11, fontFamily: FONT.mono, padding: "5px 8px", borderRadius: 4, border: `1px solid ${t.border}`, background: t.bg, color: t.text }}
           />
-          <button type="button" onClick={handleSaveCurrent}
-            style={{ fontSize: 11, fontFamily: FONT.mono, fontWeight: 600, padding: "5px 10px", borderRadius: 4, border: `1px solid ${t.accent}`, background: t.accentDim, color: t.accent, cursor: "pointer" }}>
+          <button type="button" onClick={handleSaveCurrent} disabled={atSavedCap}
+            style={{ fontSize: 11, fontFamily: FONT.mono, fontWeight: 600, padding: "5px 10px", borderRadius: 4, border: `1px solid ${t.accent}`, background: t.accentDim, color: t.accent, cursor: atSavedCap ? "not-allowed" : "pointer", opacity: atSavedCap ? 0.5 : 1 }}>
             Save
           </button>
           <button type="button" onClick={() => setShowSaveForm(false)}
