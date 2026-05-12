@@ -56,6 +56,8 @@ dmypy.json
 # ------------------------------------------------------------------------------
 # pytest / coverage / hypothesis
 # ------------------------------------------------------------------------------
+# Written by scripts/test_api_integration.py (timestamps, durations, live metrics).
+tests/test_report.json
 .pytest_cache/
 .coverage
 .coverage.*
