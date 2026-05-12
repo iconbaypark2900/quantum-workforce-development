@@ -39,7 +39,7 @@ This document summarizes the execution of the Quantum Hybrid Portfolio Next Phas
 **Updated Files:**
 - `.env.example` - Added Braket configuration section
 - `services/portfolio_optimizer.py` - Integrated Braket backend
-- `requirements.txt` - Added `amazon-braket-sdk>=1.60.0`
+- `deps/requirements.txt` - Added `amazon-braket-sdk>=1.60.0`
 
 ---
 
@@ -90,7 +90,7 @@ Comprehensive test suite covering:
 **Usage:**
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 
 # Run tests
 python scripts/test_api_integration.py --base-url http://localhost:5000
@@ -148,7 +148,7 @@ DEMO_MODE=true  # Allow demo credentials
 ```
 
 **Updated Files:**
-- `requirements.txt` - Added `flask-jwt-extended>=4.6.0`
+- `deps/requirements.txt` - Added `flask-jwt-extended>=4.6.0`
 - `api.py` - Integrated JWT authentication
 
 ---
@@ -236,7 +236,7 @@ def cache_set(key, data): ...
 | `api.py` | Enhanced health check, JWT endpoints, Braket integration |
 | `services/portfolio_optimizer.py` | Braket backend integration |
 | `.env.example` | Braket configuration, JWT settings |
-| `requirements.txt` | Added flask-jwt-extended, psutil, braket-sdk |
+| `deps/requirements.txt` | Added flask-jwt-extended, psutil, braket-sdk |
 | `docs/next-phase/PRODUCTION_AND_OPS.md` | Deployment decision |
 | `docs/next-phase/ENGINEERING_BACKLOG.md` | Updated task status |
 

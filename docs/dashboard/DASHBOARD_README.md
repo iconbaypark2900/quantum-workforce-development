@@ -46,7 +46,7 @@ cd quantum-hybrid-portfolio
 source .venv/bin/activate
 
 # Install dependencies (if not already installed)
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 ```
 
 ## ▶️ Running the Dashboard
@@ -110,7 +110,7 @@ For visualization issues:
 ```
 frontend/             # React dashboard (main UI)
 scripts/run_dashboard.sh   # Launches API + React dashboard (repo root: ./scripts/run_dashboard.sh)
-requirements.txt      # Python dependencies
+deps/requirements.txt      # Python dependencies
 ```
 
 ## 🤝 Contributing

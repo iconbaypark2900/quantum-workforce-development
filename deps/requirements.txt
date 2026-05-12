@@ -1,4 +1,4 @@
-# Full local development, CI, and Docker/HF images; Vercel installs from requirements-vercel.txt (see vercel.json installCommand).
+# Full local development, CI, and Docker/HF images; Vercel installs from deps/requirements-vercel.txt (see vercel.json installCommand).
 #
 # Core scientific computing
 numpy==2.3.3
@@ -54,6 +54,6 @@ amazon-braket-schemas>=1.18.0
 boto3>=1.28.0
 
 # IBM Quantum (optional: VQE hardware + GET /api/config/ibm-quantum/workloads)
-# Reproducible install: pip install -r requirements-ibm-quantum.txt
+# Reproducible install: pip install -r deps/requirements-ibm-quantum.txt
 # qiskit==2.3.1
 # qiskit-ibm-runtime==0.46.1

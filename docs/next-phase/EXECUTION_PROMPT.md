@@ -73,7 +73,7 @@ Quantum Hybrid Portfolio is a quantum-inspired portfolio optimization system. Ph
 | `api.py` | Enhanced health check, JWT auth endpoints, Braket integration |
 | `services/portfolio_optimizer.py` | Braket backend integration |
 | `.env.example` | Braket and JWT configuration |
-| `requirements.txt` | Added flask-jwt-extended, psutil, braket-sdk |
+| `deps/requirements.txt` | Added flask-jwt-extended, psutil, braket-sdk |
 | `docs/next-phase/PRODUCTION_AND_OPS.md` | Deployment target decision |
 | `docs/next-phase/ENGINEERING_BACKLOG.md` | Updated task status |
 
@@ -83,7 +83,7 @@ Quantum Hybrid Portfolio is a quantum-inspired portfolio optimization system. Ph
 
 ### Run Integration Tests
 ```bash
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 python scripts/test_api_integration.py --base-url http://localhost:5000
 ```
 

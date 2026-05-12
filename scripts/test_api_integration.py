@@ -4,7 +4,7 @@ Comprehensive API Integration Test Suite
 
 Tests all API endpoints with full dependency verification.
 Run this after installing all dependencies:
-    pip install -r requirements.txt
+    pip install -r deps/requirements.txt
     
 Usage:
     python scripts/test_api_integration.py [--base-url http://localhost:5000]
@@ -514,7 +514,7 @@ def main():
     
     if not all_deps_installed:
         print("\n⚠️  Some critical dependencies are missing.")
-        print("   Run: pip install -r requirements.txt")
+        print("   Run: pip install -r deps/requirements.txt")
         return 1
     
     print("\n" + "=" * 60)

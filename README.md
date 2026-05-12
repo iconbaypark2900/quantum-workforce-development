@@ -31,7 +31,7 @@ This project implements quantum-inspired portfolio optimization: hybrid pipeline
 ### 1. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 pip install -e .
 ```
 

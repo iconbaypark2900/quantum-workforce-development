@@ -45,9 +45,9 @@ There are **two** supported integration patterns:
 | [`api/__main__.py`](../api/__main__.py) | `python -m api` dev server |
 | [`services/`](../services/) | Business logic: market data, optimizer, IBM Quantum, auth, etc. |
 | [`core/`](../core/), [`methods/`](../methods/) | Optimization engines, QUBO/VQE/QAOA paths |
-| [`pyproject.toml`](../pyproject.toml) | Package metadata; dynamic deps from **`requirements-vercel.txt`** (for slim installs) |
-| [`requirements.txt`](../requirements.txt) | **Full** local/CI/Fly/Docker API image: scientific stack, tests, optional Braket, plotting, etc. |
-| [`requirements-vercel.txt`](../requirements-vercel.txt) | **Trimmed** API deps for Vercel serverless bundle limits; IBM Quantum pins included |
+| [`pyproject.toml`](../pyproject.toml) | Package metadata; dynamic deps from **`deps/requirements-vercel.txt`** (for slim installs) |
+| [`deps/requirements.txt`](../deps/requirements.txt) | **Full** local/CI/Fly/Docker API image: scientific stack, tests, optional Braket, plotting, etc. |
+| [`deps/requirements-vercel.txt`](../deps/requirements-vercel.txt) | **Trimmed** API deps for Vercel serverless bundle limits; IBM Quantum pins included |
 | [`Dockerfile.fly`](../Dockerfile.fly) | Production API image: `gunicorn`, port **5000** |
 | [`fly.toml`](../fly.toml) (repo root) | Fly.io app for **API** only |
 
@@ -71,16 +71,16 @@ There are **two** supported integration patterns:
 
 | File | When to use |
 |------|-------------|
-| **`requirements.txt`** | Local dev, CI, **Fly API** (`Dockerfile.fly`), full features |
-| **`requirements-vercel.txt`** | **Vercel Python** project at repo root (`vercel.json` installCommand + `pip install .`) |
-| **`requirements-ibm-quantum.txt`** | Reference pins for IBM stack; overlaps with vercel pins |
+| **`deps/requirements.txt`** | Local dev, CI, **Fly API** (`Dockerfile.fly`), full features |
+| **`deps/requirements-vercel.txt`** | **Vercel Python** project at repo root (`vercel.json` installCommand + `pip install .`) |
+| **`deps/requirements-ibm-quantum.txt`** | Reference pins for IBM stack; overlaps with vercel pins |
 
 Install pattern for local development (from repo root):
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 pip install -e .
 ```
 
@@ -137,7 +137,7 @@ Fly note: **`NEXT_PUBLIC_*`** changes require a **rebuild** of the Next image; *
 
 ### Vercel (two projects)
 
-- **API project:** repo root; `vercel.json` installs **`requirements-vercel.txt`** and the package—watch serverless bundle size (~245 MB uncompressed limit).
+- **API project:** repo root; `vercel.json` installs **`deps/requirements-vercel.txt`** and the package—watch serverless bundle size (~245 MB uncompressed limit).
 - **Web project:** Root Directory **`web`**. Either proxy (empty `NEXT_PUBLIC_API_URL`, set **`API_PROXY_TARGET`** to the **public HTTPS** API base) or direct URL + CORS—see [VERCEL_TWO_PROJECTS.md](VERCEL_TWO_PROJECTS.md) and [VERCEL_WIRE_NEXT_API.md](VERCEL_WIRE_NEXT_API.md).
 
 ### Same machine (VM, Docker Compose, single host)
@@ -171,4 +171,4 @@ Fly note: **`NEXT_PUBLIC_*`** changes require a **rebuild** of the Next image; *
 
 - **Host two things:** a **Flask** service (`api` + `services` + `core`/`methods`) and a **Next.js 16** app in **`web/`** with **standalone** output for containers.
 - **Wire them** either with Next’s **server proxy** (`API_PROXY_TARGET`, empty `NEXT_PUBLIC_API_URL`) or **direct** HTTPS calls (`NEXT_PUBLIC_API_URL` + `CORS_ORIGINS`).
-- **Dependencies:** Python **≥3.11** + `requirements.txt` (full) or `requirements-vercel.txt` (Vercel API); Node **20** + `web/package.json` for the UI.
+- **Dependencies:** Python **≥3.11** + `deps/requirements.txt` (full) or `deps/requirements-vercel.txt` (Vercel API); Node **20** + `web/package.json` for the UI.

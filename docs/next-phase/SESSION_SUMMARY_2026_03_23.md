@@ -101,7 +101,7 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 **Updated Files:**
 - `docs/next-phase/ENGINEERING_BACKLOG.md` — Added data providers section, updated status
 - `.env.example` — Added data provider configuration section
-- `requirements.txt` — Added optional Alpaca/Polygon dependencies
+- `deps/requirements.txt` — Added optional Alpaca/Polygon dependencies
 
 ---
 
@@ -114,7 +114,7 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 | `scripts/test_api_integration.py` | Fixed TestResult dataclass |
 | `services/data_provider_v2.py` | **NEW** — Multi-provider data service |
 | `.env.example` | Added data provider config |
-| `requirements.txt` | Added optional provider SDKs |
+| `deps/requirements.txt` | Added optional provider SDKs |
 | `docs/next-phase/ENGINEERING_BACKLOG.md` | Updated with completed work |
 
 ---

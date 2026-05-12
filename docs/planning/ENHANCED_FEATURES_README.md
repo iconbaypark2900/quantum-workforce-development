@@ -25,7 +25,7 @@ This project extends the original Quantum Hybrid Portfolio system with advanced 
 
 1. **Install Dependencies** (already done if following the original setup):
    ```bash
-   pip install -r requirements.txt
+   pip install -r deps/requirements.txt
    pip install -e .
    ```
 

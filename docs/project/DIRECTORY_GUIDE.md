@@ -36,7 +36,7 @@
 
 ---
 
-### `requirements.txt`
+### `deps/requirements.txt`
 **Purpose:** Python package dependencies  
 **What it contains:**
 ```
@@ -57,7 +57,7 @@ pyyaml>=6.0.1
 python-dotenv>=1.0.0
 ```
 
-**Usage:** `pip install -r requirements.txt`  
+**Usage:** `pip install -r deps/requirements.txt`  
 **When to update:** When adding new package dependencies
 
 ---
@@ -66,7 +66,7 @@ python-dotenv>=1.0.0
 **Purpose:** Package installation configuration  
 **What it contains:**
 - Package metadata (name, version, author)
-- Dependencies from requirements.txt
+- Dependencies from deps/requirements.txt
 - Entry points and classifiers
 
 **Usage:** `pip install -e .` (installs in development mode)  
@@ -607,7 +607,7 @@ LOW:     qsw_config.py, test files, setup.py
 
 ### **Configuration:**
 1. `config/qsw_config.py` - All parameters
-2. `requirements.txt` - Dependencies
+2. `deps/requirements.txt` - Dependencies
 
 ### **Development:**
 1. `tests/test_quantum_walk.py` - Unit tests

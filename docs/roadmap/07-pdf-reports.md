@@ -46,8 +46,8 @@ Without PDF, every report consumer must perform formatting work downstream. CSV/
 | `services/report_generator.py` | New file — HTML template rendering + PDF conversion |
 | `templates/report.html` | New Jinja2 HTML template for the report |
 | `templates/report.css` | Print-optimized CSS |
-| `requirements.txt` | Add `weasyprint` |
-| `requirements-vercel.txt` | Add `weasyprint` only if Vercel bundle size permits (check; may need server-only flag) |
+| `deps/requirements.txt` | Add `weasyprint` |
+| `deps/requirements-vercel.txt` | Add `weasyprint` only if Vercel bundle size permits (check; may need server-only flag) |
 | `web/src/app/(ledger)/reports/page.tsx` | Add "Download PDF" button that calls the PDF endpoint |
 
 ---
@@ -112,7 +112,7 @@ Without PDF, every report consumer must perform formatting work downstream. CSV/
 
 ## Implementation Plan
 
-1. **Add `weasyprint` to `requirements.txt`**. Verify it installs on Linux (it requires system libs: `libpango`, `libcairo`). Add to `Dockerfile.fly` system deps if needed:
+1. **Add `weasyprint` to `deps/requirements.txt`**. Verify it installs on Linux (it requires system libs: `libpango`, `libcairo`). Add to `Dockerfile.fly` system deps if needed:
    ```dockerfile
    RUN apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libcairo2
    ```
@@ -129,7 +129,7 @@ Without PDF, every report consumer must perform formatting work downstream. CSV/
        return HTML(string=html_str, base_url='.').write_pdf()
    ```
 
-3. **Generate equity curve chart as PNG** — if the run has an equity curve, render it with `matplotlib` (already a dependency in `requirements.txt`) and encode as base64:
+3. **Generate equity curve chart as PNG** — if the run has an equity curve, render it with `matplotlib` (already a dependency in `deps/requirements.txt`) and encode as base64:
    ```python
    import matplotlib.pyplot as plt
    import base64, io
@@ -178,7 +178,7 @@ Without PDF, every report consumer must perform formatting work downstream. CSV/
 - [ ] PDF includes equity curve chart image if backtest data is available for that run
 - [ ] "Download PDF" button appears in the `/reports` page UI
 - [ ] All three new tests pass
-- [ ] `weasyprint` is listed in `requirements.txt`
+- [ ] `weasyprint` is listed in `deps/requirements.txt`
 
 ---
 

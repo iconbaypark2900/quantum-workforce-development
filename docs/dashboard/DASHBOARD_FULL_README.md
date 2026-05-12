@@ -31,7 +31,7 @@ The backend is already integrated with the Quantum Hybrid Portfolio system:
 
 3. Install/update dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r deps/requirements.txt
    ```
 
 ### Frontend (React Dashboard)

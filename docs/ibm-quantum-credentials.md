@@ -39,13 +39,13 @@ This project uses **`qiskit-ibm-runtime`** with channel **`ibm_quantum_platform`
 
 ## Proxy note
 
-IBM’s documentation: if you use an HTTP proxy, use **Qiskit Runtime v0.44.0+** (this repo pins versions in `requirements-ibm-quantum.txt`; install with `pip install -r requirements.txt -r requirements-ibm-quantum.txt`).
+IBM’s documentation: if you use an HTTP proxy, use **Qiskit Runtime v0.44.0+** (this repo pins versions in `deps/requirements-ibm-quantum.txt`; install with `pip install -r deps/requirements.txt -r deps/requirements-ibm-quantum.txt`).
 
 ## Vercel (API serverless)
 
-The API deploy uses **`requirements-vercel.txt`**, which includes **`qiskit`** / **`qiskit-ibm-runtime`** with the same pins as **`requirements-ibm-quantum.txt`**. **`vercel.json`** sets **`installCommand`** so Vercel runs **`pip install -r requirements-vercel.txt`** (the root **`requirements.txt`** alone does not install IBM packages). Redeploy the API project after dependency changes. If the install exceeds Vercel size/time limits, use a full Docker/VM deployment for IBM-heavy paths or relax pins only after testing compatibility.
+The API deploy uses **`deps/requirements-vercel.txt`**, which includes **`qiskit`** / **`qiskit-ibm-runtime`** with the same pins as **`deps/requirements-ibm-quantum.txt`**. **`vercel.json`** sets **`installCommand`** so Vercel runs **`pip install -r deps/requirements-vercel.txt`** (the root **`deps/requirements.txt`** alone does not install IBM packages). Redeploy the API project after dependency changes. If the install exceeds Vercel size/time limits, use a full Docker/VM deployment for IBM-heavy paths or relax pins only after testing compatibility.
 
 ## Troubleshooting
 
 - **“Unable to retrieve instances…”** — Usually IBM cannot resolve instances for this login: invalid/expired token, account/plan restrictions, or a missing/wrong **instance CRN** when your account requires one. Regenerate the token, confirm Open Plan / instance access in the IBM portal, and retry **Verify** with an explicit CRN if needed.
-- **`qiskit-ibm-runtime` is not installed** on Vercel — ensure the latest **`requirements-vercel.txt`** is deployed and the build succeeded; older slim images omitted IBM packages.
+- **`qiskit-ibm-runtime` is not installed** on Vercel — ensure the latest **`deps/requirements-vercel.txt`** is deployed and the build succeeded; older slim images omitted IBM packages.

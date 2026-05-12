@@ -21,7 +21,7 @@ The GPU simulation track is documented in `docs/GPU_SIM_SETUP.md` but:
 - There is **no GPU-specific code** in the repo
 - Gate-based VQE/QAOA run on CPU only
 - `pytest -m gpu` tests are skipped unless `GPU_TEST=1` and a GPU is present
-- PennyLane Lightning (CUDA) and `qiskit-aer-gpu` are not in `requirements.txt`
+- PennyLane Lightning (CUDA) and `qiskit-aer-gpu` are not in `deps/requirements.txt`
 
 ### Track C — Google Quantum AI (Priority: Low)
 Listed in `QUANTUM_HARDWARE.md` as "Not integrated / Future." No code, no plan, no dependency. This is a roadmap placeholder only.
@@ -37,7 +37,7 @@ Listed in `QUANTUM_HARDWARE.md` as "Not integrated / Future." No code, no plan, 
 - Update `ENGINEERING_BACKLOG.md` when done
 
 **Track B — GPU Simulation:**
-- Add `PennyLane Lightning (GPU)` as an optional dependency in `requirements.txt`
+- Add `PennyLane Lightning (GPU)` as an optional dependency in `deps/requirements.txt`
 - Add a `gpu_simulator` backend selector in `services/ibm_quantum.py` / `methods/vqe.py`
 - Implement `pytest -m gpu` tests (currently they exist but test nothing meaningful)
 - Benchmark GPU vs CPU simulation speed and document in `docs/GPU_SIM_SETUP.md`
@@ -60,7 +60,7 @@ Listed in `QUANTUM_HARDWARE.md` as "Not integrated / Future." No code, no plan, 
 | File | Change |
 |------|--------|
 | `services/braket_backend.py` | Add `embed_qubo_minor_embedding(Q, n_assets)` for n > 20 |
-| `requirements.txt` | Add `dwave-networkx` as optional comment (already noted) |
+| `deps/requirements.txt` | Add `dwave-networkx` as optional comment (already noted) |
 | `tests/test_braket_real_device.py` | Un-skip real-device test; record artifact path |
 | `docs/next-phase/ENGINEERING_BACKLOG.md` | Mark D-Wave QPU item complete after first real run |
 | `scripts/braket_validate.py` | Verify it handles minor-embedding path for large QUBO |
@@ -69,7 +69,7 @@ Listed in `QUANTUM_HARDWARE.md` as "Not integrated / Future." No code, no plan, 
 
 | File | Change |
 |------|--------|
-| `requirements.txt` | Add `pennylane-lightning[gpu]` as optional (commented) |
+| `deps/requirements.txt` | Add `pennylane-lightning[gpu]` as optional (commented) |
 | `methods/vqe.py` | Add `backend='gpu'` parameter that selects `lightning.gpu` device |
 | `methods/qaoa.py` | Same |
 | `tests/test_gpu_simulation.py` | Add meaningful test that verifies GPU device initialization |
@@ -185,7 +185,7 @@ No implementation planned. The `QUANTUM_HARDWARE.md` provider matrix entry shoul
 
 1. Add `embed_qubo_minor_embedding()` to `services/braket_backend.py`
 2. Add conditional call in `_execute_braket()` when `n > 20`
-3. Add `dwave-networkx` and `minorminer` as commented optional deps in `requirements.txt`
+3. Add `dwave-networkx` and `minorminer` as commented optional deps in `deps/requirements.txt`
 4. Add test `test_minor_embedding_shape` — verify embedded QUBO dimension matches device graph
 5. Execute real D-Wave run when credentials available; record artifact
 6. Un-skip `test_braket_real_device` in `tests/test_braket_real_device.py`
@@ -194,7 +194,7 @@ No implementation planned. The `QUANTUM_HARDWARE.md` provider matrix entry shoul
 
 1. Add `lightning.gpu` optional device path to `methods/vqe.py` and `methods/qaoa.py`
 2. Add `GPU_BACKEND` env var (`cpu` | `gpu`, default `cpu`)
-3. Add `pennylane-lightning[gpu]` as commented optional dep in `requirements.txt`
+3. Add `pennylane-lightning[gpu]` as commented optional dep in `deps/requirements.txt`
 4. Update `tests/test_gpu_simulation.py` to test device initialization (not a full circuit run)
 5. Run GPU benchmark and document in `docs/GPU_SIM_SETUP.md`
 

@@ -43,7 +43,7 @@ This guide explains how to host the Quantum Portfolio Lab on [Hugging Face Space
 3. Copy the required files:
    - All Python code (`api/`, `serve_hf.py`, `config/`, `core/`, `services/`)
    - `frontend/` (entire folder)
-   - `requirements.txt`
+   - `deps/requirements.txt`
    - `Dockerfile.hf` → rename to `Dockerfile`
    - `huggingface/README.md` → use as `README.md` (includes HF YAML)
 

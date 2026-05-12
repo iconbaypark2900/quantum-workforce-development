@@ -89,7 +89,7 @@ Notebooks are **not production code.** They import from `services/` and `methods
 ## Release critical path (no undocumented steps)
 
 1. **Copy `.env.example` → `.env`** and fill `API_KEY`, `TIINGO_API_KEY`.
-2. **`source .venv/bin/activate && pip install -r requirements.txt`**
+2. **`source .venv/bin/activate && pip install -r deps/requirements.txt`**
 3. **`python -m api`** — DB created automatically on first run.
 4. **`cd web && npm ci && npm run dev`** — or use `scripts/run-next-web.sh`.
 5. **No manual DB migration steps** for new installs — schema is `CREATE TABLE IF NOT EXISTS`.

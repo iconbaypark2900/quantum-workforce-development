@@ -23,7 +23,7 @@ RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
 # Install deps before copying source for layer caching.
-COPY requirements.txt requirements-vercel.txt ./
+COPY deps/requirements.txt deps/requirements-vercel.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir \

@@ -1,7 +1,7 @@
 # Minimal runtime dependencies for serverless (Vercel) — target total install < ~500 MB.
-# Full dev/CI/Docker: use requirements.txt (plotting, tests, Braket/boto3, networkx, etc.).
+# Full dev/CI/Docker: use deps/requirements.txt (plotting, tests, Braket/boto3, networkx, etc.).
 #
-# Omitted vs requirements.txt:
+# Omitted vs deps/requirements.txt:
 #   - matplotlib, seaborn — not imported by the Flask API
 #   - pytest, pytest-cov — dev only
 #   - networkx — not used by core optimizers / api routes (quantum_inspired only)
@@ -34,7 +34,7 @@ pyyaml==6.0.3
 python-dotenv==1.1.1
 cryptography>=42.0.0
 
-# IBM Quantum (verify, workloads, Runtime paths) — same pins as requirements-ibm-quantum.txt.
+# IBM Quantum (verify, workloads, Runtime paths) — same pins as deps/requirements-ibm-quantum.txt.
 # Increases serverless bundle size vs the previous slim-only image; monitor Vercel build size/timeouts.
 qiskit==2.3.1
 qiskit-ibm-runtime==0.46.1

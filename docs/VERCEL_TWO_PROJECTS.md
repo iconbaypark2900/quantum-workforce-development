@@ -12,7 +12,7 @@ Use **two Vercel projects** from the same GitHub repo: one for the **Flask API**
 |--------|--------|
 | **Root Directory** | Repository root (`.`) |
 | **Framework** | Vercel Python / auto-detect from `pyproject.toml` |
-| **Install** | `vercel.json` → `pip install -r requirements-vercel.txt && pip install .` (IBM/Qiskit included); root `requirements.txt` is for CI/local, not Vercel’s default pip step |
+| **Install** | `vercel.json` → `pip install -r deps/requirements-vercel.txt && pip install .` (IBM/Qiskit included); root `deps/requirements.txt` is for CI/local, not Vercel’s default pip step |
 | **Upload size** | Root **`.vercelignore`** excludes **`web/`**, **`frontend/`**, tests, notebooks, etc., so the API deployment does not upload Next/CRA build output (~GB). **`vercel.json` → `functions.*.excludeFiles`** adds a second layer for the Python bundle. |
 
 **Environment variables (Production / Preview as needed)**

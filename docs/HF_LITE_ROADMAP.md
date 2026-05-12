@@ -47,7 +47,7 @@ This roadmap turns the **HF venture** into concrete deliverables. It complements
 - **Next.js** `web/` ledger as the Space UI (optional far-future “pixel parity” track).
 - **Auth** flows (`/api/auth/*`) and **admin** API keys / audit export for anonymous public Space.
 - **Batch** optimize/backtest at scale without strict input caps.
-- Optional heavy extras — evaluate **`requirements.txt`** slimming only if builds fail.
+- Optional heavy extras — evaluate **`deps/requirements.txt`** slimming only if builds fail.
 
 ---
 
@@ -56,7 +56,7 @@ This roadmap turns the **HF venture** into concrete deliverables. It complements
 | Option | Description | When to choose |
 |--------|-------------|----------------|
 | **A — Evolve CRA** (default) | Tighten `frontend/` for HF: hide product-only links, cap inputs, clear IBM + lab flow | Lowest churn; already in `Dockerfile.hf` |
-| **B — Gradio** | Small Python UI calling the same Flask routes — starter: **`scripts/gradio_portfolio_demo.py`** (`pip install -r requirements-gradio.txt`) | Fast iteration; extra stack to maintain |
+| **B — Gradio** | Small Python UI calling the same Flask routes — starter: **`scripts/gradio_portfolio_demo.py`** (`pip install -r deps/requirements-gradio.txt`) | Fast iteration; extra stack to maintain |
 | **C — Next in Docker** | Ship `web/` in the Space | Heavier image; reserve for explicit parity milestone |
 
 **Planned default for v1:** **Option A**, unless we explicitly open a Gradio milestone.
