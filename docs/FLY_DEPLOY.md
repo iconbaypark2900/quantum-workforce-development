@@ -215,7 +215,7 @@ Not `fly deploy --config web/fly.toml` alone. See [Monorepo and multi-environmen
 
 The **API** app (`deploy/docker/Dockerfile.fly`) binds gunicorn to **`0.0.0.0:5000`**. `fly.toml` must use **`internal_port = 5000`** (do not use a shell `$$PORT` bind — it breaks as `638PORT` etc.).
 
-- **7860** is only for **Hugging Face** / `deploy/docker/Dockerfile` + `serve_hf.py`, not for Fly’s API deploy.
+- **7860** is only for **Hugging Face** / `deploy/docker/Dockerfile.hf` + `serve_hf.py`, not for Fly’s API deploy.
 - If the dashboard or an old `fly launch` set **internal_port = 7860**, change it to **5000** (or edit `fly.toml` and run `fly deploy`).
 - After changing port, redeploy so Fly’s proxy matches the container listen port.
 
