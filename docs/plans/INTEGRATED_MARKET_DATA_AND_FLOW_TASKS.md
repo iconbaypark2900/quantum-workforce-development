@@ -26,7 +26,7 @@ This document consolidates work to: **Tiingo-backed prices**, **synthetic + live
 |----|----------------|
 | **2.1** | **`services/market_data.py`:** delegate `fetch_market_data` to `data_provider_v2.fetch_market_data` (or thin wrapper); remove direct `yf.download` from the primary code path. |
 | **2.2** | Update **`legacy/api/enhanced_api.py` / `legacy/api/fixed_enhanced_api.py`** (archived; if ever revived) to use the same entry point. |
-| **2.3** | Update **`examples/basic_qsw_example.py`** and **`test_enhanced_system.py`** to Tiingo or synthetic-only; document required env. |
+| **2.3** | Update **`examples/basic_qsw_example.py`** and **`tests/test_enhanced_system.py`** to Tiingo or synthetic-only; document required env. |
 
 **Exit criteria:** Grep shows no `yfinance` in primary fetch paths outside optional fallback (if you keep it temporarily).
 

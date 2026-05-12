@@ -149,7 +149,7 @@ The system optimizes for multiple objectives simultaneously:
 2. `core/quantum_inspired/enhanced_graph_builder.py` - Enhanced graph construction
 3. `core/quantum_inspired/enhanced_evolution_dynamics.py` - Enhanced evolution methods
 4. `core/quantum_inspired/enhanced_stability_enhancer.py` - Enhanced stability features
-5. `test_enhanced_system.py` - Comprehensive validation tests
+5. `tests/test_enhanced_system.py` - Comprehensive validation tests
 6. `ENHANCEMENT_PLAN.md` - Detailed enhancement roadmap
 
 ## Conclusion
