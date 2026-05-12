@@ -31,9 +31,9 @@ This is the master index for all Quantum Hybrid Portfolio documentation.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and data flow |
 | [TECHNICAL_PAPER.md](TECHNICAL_PAPER.md) | Technical background and research |
 | [project/DIRECTORY_GUIDE.md](project/DIRECTORY_GUIDE.md) | Project directory structure |
-| [project/PROJECT_OVERVIEW.md](project/PROJECT_OVERVIEW.md) | High-level product overview |
-| [project/SYSTEM_SUMMARY.md](project/SYSTEM_SUMMARY.md) | System summary |
-| [project/TECHNICAL_DOCUMENTATION.md](project/TECHNICAL_DOCUMENTATION.md) | Technical documentation |
+| [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | High-level product overview |
+| [planning/SYSTEM_SUMMARY.md](planning/SYSTEM_SUMMARY.md) | System summary |
+| [TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md) | Technical documentation |
 
 ## Migration & refactoring plans
 
@@ -88,13 +88,15 @@ This is the master index for all Quantum Hybrid Portfolio documentation.
 | [planning/PRODUCTION_FEATURES.md](planning/PRODUCTION_FEATURES.md) | Production features |
 | [planning/PRODUCTION_READINESS_PLAN.md](planning/PRODUCTION_READINESS_PLAN.md) | Production readiness |
 | [planning/QUANTUM_INTEGRATION_ROADMAP.md](planning/QUANTUM_INTEGRATION_ROADMAP.md) | Quantum integration roadmap |
-| [planning/WALKTHROUGH_SUMMARY.md](planning/WALKTHROUGH_SUMMARY.md) | Walkthrough summary |
+| [dashboard/WALKTHROUGH_SUMMARY.md](dashboard/WALKTHROUGH_SUMMARY.md) | Walkthrough summary |
 
 ## Other
 
 | Document | Description |
 |----------|-------------|
 | [misc/qwen.md](misc/qwen.md) | Supplementary notes |
+| [specs/core_features_spec.pdf](specs/core_features_spec.pdf) | Core features specification (PDF) |
+| [specs/core_features_spec.docx](specs/core_features_spec.docx) | Core features specification (Word) |
 
 ## Examples & tutorials
 
@@ -110,7 +112,7 @@ This is the master index for all Quantum Hybrid Portfolio documentation.
 |----------|-------------|
 | [HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md) | Deploy to Hugging Face Spaces |
 | [../deploy_production.sh](../deploy_production.sh) | Production deployment script |
-| [../deploy_hf_spaces.sh](../deploy_hf_spaces.sh) | HF Spaces deployment script |
+| [../scripts/deploy_hf_spaces.sh](../scripts/deploy_hf_spaces.sh) | HF Spaces deployment script |
 | [../docker-compose.yml](../docker-compose.yml) | Docker Compose configuration |
 
 ## Development
@@ -118,7 +120,7 @@ This is the master index for all Quantum Hybrid Portfolio documentation.
 | Document | Description |
 |----------|-------------|
 | [NEXT_STEPS.md](NEXT_STEPS.md) | Development roadmap and tasks |
-| [../demo_dashboard_features.sh](../demo_dashboard_features.sh) | Dashboard feature demo script |
+| [../scripts/demo_dashboard_features.sh](../scripts/demo_dashboard_features.sh) | Dashboard feature demo script |
 
 ## Testing
 

@@ -118,7 +118,7 @@ python scripts/test_api_integration.py --base-url http://localhost:5000
 | Data Persistence | Ephemeral | PostgreSQL + Redis |
 
 **Deployment Scripts:**
-- `deploy_hf_spaces.sh` - HF Spaces deployment
+- `scripts/deploy_hf_spaces.sh` - HF Spaces deployment
 - `deploy_production.sh` - Full production stack (Redis, PostgreSQL, Nginx, systemd)
 
 ---
@@ -301,7 +301,7 @@ curl -X POST http://localhost:5000/api/portfolio/optimize \
 ```bash
 # 1. Create Space at https://huggingface.co/new-space (Docker SDK)
 # 2. Deploy
-./deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
+./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
 ```
 
 ### For Self-Hosted Production

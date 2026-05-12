@@ -29,7 +29,7 @@ pip install -e .
 ### 3. Quick verification
 
 ```bash
-python quick_test.py
+python tests/quick_test.py
 ```
 
 Expected output: success message and basic optimization result.

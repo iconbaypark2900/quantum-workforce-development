@@ -144,8 +144,8 @@ cd frontend && npm install && npm start
 - **README.md** — Quick start, features, API examples
 - **docs/ARCHITECTURE.md** — System design and data flow
 - **docs/TECHNICAL_PAPER.md** — Mathematical and algorithmic details
-- **DOCUMENTATION_INDEX.md** — Index of all docs
-- **QUANTUM_INTEGRATION_ROADMAP.md** — Roadmap for real quantum hardware integration
+- **docs/DOCUMENTATION_INDEX.md** — Index of all docs
+- **docs/planning/QUANTUM_INTEGRATION_ROADMAP.md** — Roadmap for real quantum hardware integration
 
 ---
 

@@ -107,7 +107,7 @@ python-dotenv>=1.0.0
 
 ---
 
-### `quick_test.py`
+### `tests/quick_test.py`
 **Purpose:** 5-second verification script  
 **What it does:**
 - Creates test data
@@ -115,7 +115,7 @@ python-dotenv>=1.0.0
 - Displays results
 - Confirms everything works
 
-**Usage:** `python quick_test.py`  
+**Usage:** `python tests/quick_test.py`  
 **When to use:** After making changes, before committing
 
 ---
@@ -596,7 +596,7 @@ LOW:     qsw_config.py, test files, setup.py
 ## 🎯 Key Files by Task
 
 ### **Running the Project:**
-1. `quick_test.py` - Quick verification
+1. `tests/quick_test.py` - Quick verification
 2. `examples/basic_qsw_example.py` - Full example
 3. `tests/phase1.py` - Diagnostic tests
 
@@ -654,7 +654,7 @@ test_quantum_walk.py
 ### **After Modifying:**
 1. Update docstrings if needed
 2. Run tests: `pytest tests/ -v`
-3. Run quick_test: `python quick_test.py`
+3. Run quick_test: `python tests/quick_test.py`
 4. Update this guide if structure changed
 
 ### **Commit Checklist:**

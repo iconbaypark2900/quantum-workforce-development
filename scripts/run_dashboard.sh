@@ -3,7 +3,8 @@
 # Finds open ports for backend and frontend, starts both, and prints their URLs.
 
 set -e
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
 # Default port ranges (first free port in range is used)

@@ -89,7 +89,7 @@ python scripts/test_api_integration.py --base-url http://localhost:5000
 
 ### Deploy to Hugging Face Spaces
 ```bash
-./deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
+./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
 ```
 
 ### Deploy to Production

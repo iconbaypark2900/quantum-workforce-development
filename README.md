@@ -45,7 +45,7 @@ cp .env.example .env
 ### 3. Run Quick Test
 
 ```bash
-python quick_test.py
+python tests/quick_test.py
 ```
 
 ### 4. Start the API

@@ -153,7 +153,7 @@ Top 10 Holdings:
 ## 🎯 Recommended Running Order
 
 ### First Time:
-1. `python quick_test.py` (verify install)
+1. `python tests/quick_test.py` (verify install)
 2. `python -m pytest tests/test_optimizers.py tests/test_api_integration.py -v` (run core tests)
 3. `python examples/basic_qsw_example.py` (see it work with real data)
 

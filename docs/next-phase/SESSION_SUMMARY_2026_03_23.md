@@ -147,7 +147,7 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 ### Deployment Options
 1. **Hugging Face Spaces** (demos/prototyping)
    ```bash
-   ./deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
+   ./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
    ```
 
 2. **Self-Hosted Production** (institutional use)

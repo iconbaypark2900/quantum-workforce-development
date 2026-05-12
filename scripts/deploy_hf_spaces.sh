@@ -9,6 +9,7 @@
 set -e
 SPACE_REPO="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 if [ -z "$SPACE_REPO" ]; then
   echo "Usage: $0 <hf_space_repo_url>"
@@ -30,9 +31,9 @@ rsync -a --exclude='.git' --exclude='node_modules' --exclude='frontend/node_modu
   --exclude='frontend/build' --exclude='.venv' --exclude='__pycache__' \
   --exclude='data/api.sqlite3' --exclude='*.sqlite3' \
   --exclude='*.docx' --exclude='*.pdf' --exclude='*.pyc' \
-  "$SCRIPT_DIR/" ./
-cp "$SCRIPT_DIR/Dockerfile.hf" ./Dockerfile
-cp "$SCRIPT_DIR/huggingface/README.md" ./README.md
+  "$REPO_ROOT/" ./
+cp "$REPO_ROOT/Dockerfile.hf" ./Dockerfile
+cp "$REPO_ROOT/huggingface/README.md" ./README.md
 
 echo "Committing and pushing..."
 git add -A

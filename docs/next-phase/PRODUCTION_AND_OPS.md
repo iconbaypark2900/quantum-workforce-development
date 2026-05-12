@@ -23,8 +23,8 @@ Checklist-style outline for production hardening and operations. Full details li
 
 ### Deployment Scripts Available
 
-- **HF Spaces**: [`deploy_hf_spaces.sh`](../../deploy_hf_spaces.sh) (from repo root)
-  - Usage: `./deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name`
+- **HF Spaces**: [`deploy_hf_spaces.sh`](../../scripts/deploy_hf_spaces.sh) (from repo root)
+  - Usage: `./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name`
   - Creates Docker-based deployment on HF Spaces
 
 - **Self-Hosted Production**: [`deploy_production.sh`](../../deploy_production.sh) (from repo root)
