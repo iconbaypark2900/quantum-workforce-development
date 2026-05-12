@@ -27,7 +27,7 @@ export IBM_QUANTUM_BACKEND="ibm_brisbane"
 ### 3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 # Or explicitly:
 pip install qiskit qiskit-algorithms qiskit-ibm-runtime
 ```

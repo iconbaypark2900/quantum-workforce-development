@@ -485,3 +485,51 @@ PRESETS_CONFIG = {
         "weight_max": 0.35,
     },
 }
+
+
+# Regime-to-optimizer parameter mappings.
+# Each regime adjusts lambda_risk (risk aversion in QUBO/Hybrid objectives),
+# tightens/loosens weight_max, and optionally adjusts the return assumption.
+# These are applied additively on top of the user-supplied parameters so that
+# an explicit lambda_risk in the request body is multiplied by the regime factor.
+REGIME_OPTIMIZER_PARAMS = {
+    "normal": {
+        "lambda_risk_factor": 1.0,
+        "weight_max_delta": 0.0,
+        "description": "Baseline — no adjustments. Standard risk aversion and weight cap.",
+    },
+    "bull": {
+        "lambda_risk_factor": 0.5,
+        "weight_max_delta": 0.03,
+        "description": (
+            "Bull market: halves risk aversion (λ × 0.5) to allow more aggressive positioning; "
+            "loosens max-weight cap by +3pp to permit higher concentration in leaders."
+        ),
+    },
+    "bear": {
+        "lambda_risk_factor": 2.0,
+        "weight_max_delta": -0.05,
+        "description": (
+            "Bear market: doubles risk aversion (λ × 2.0) for defensive posture; "
+            "tightens max-weight cap by −5pp to enforce broader diversification."
+        ),
+    },
+    "volatile": {
+        "lambda_risk_factor": 1.5,
+        "weight_max_delta": -0.03,
+        "description": (
+            "High-volatility regime: raises risk aversion 1.5× to penalize variance-heavy "
+            "allocations; tightens max-weight cap by −3pp. QUBO/Hybrid objectives will "
+            "prefer lower-concentration, lower-covariance solutions."
+        ),
+    },
+    "crisis": {
+        "lambda_risk_factor": 3.0,
+        "weight_max_delta": -0.08,
+        "description": (
+            "Crisis mode: triples risk aversion (λ × 3.0) and tightens cap by −8pp. "
+            "Strongly penalizes correlated, high-variance positions. Pairs well with "
+            "min_variance or HRP objectives."
+        ),
+    },
+}

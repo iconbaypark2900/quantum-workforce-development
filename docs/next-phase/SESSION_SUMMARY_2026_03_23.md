@@ -101,7 +101,7 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 **Updated Files:**
 - `docs/next-phase/ENGINEERING_BACKLOG.md` — Added data providers section, updated status
 - `.env.example` — Added data provider configuration section
-- `requirements.txt` — Added optional Alpaca/Polygon dependencies
+- `deps/requirements.txt` — Added optional Alpaca/Polygon dependencies
 
 ---
 
@@ -114,7 +114,7 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 | `scripts/test_api_integration.py` | Fixed TestResult dataclass |
 | `services/data_provider_v2.py` | **NEW** — Multi-provider data service |
 | `.env.example` | Added data provider config |
-| `requirements.txt` | Added optional provider SDKs |
+| `deps/requirements.txt` | Added optional provider SDKs |
 | `docs/next-phase/ENGINEERING_BACKLOG.md` | Updated with completed work |
 
 ---
@@ -147,12 +147,12 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 ### Deployment Options
 1. **Hugging Face Spaces** (demos/prototyping)
    ```bash
-   ./deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
+   ./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
    ```
 
 2. **Self-Hosted Production** (institutional use)
    ```bash
-   sudo ./deploy_production.sh
+   sudo ./legacy/deploy/deploy_production.sh
    ```
 
 ### Configuration Checklist
@@ -194,7 +194,7 @@ print(provider.get_available_providers())  # ['tiingo', 'yfinance']
 ## Next Steps
 
 1. **For demos:** Deploy to Hugging Face Spaces
-2. **For production:** Run `deploy_production.sh` on target server
+2. **For production:** Run `legacy/deploy/deploy_production.sh` on target server (archived script; see `legacy/README.md`)
 3. **For quantum hardware:** Configure AWS Braket credentials
 4. **For premium data:** Add Alpaca or Polygon API keys
 

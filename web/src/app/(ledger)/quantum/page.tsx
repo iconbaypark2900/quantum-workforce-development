@@ -39,7 +39,6 @@ export default function QuantumPage(props: NextClientPageProps) {
     ibmWorkloadsError,
     refreshIbmWorkloads,
     activeTenantId,
-    setActiveTenant,
     integrations,
     handleConnect,
     handleDisconnect,
@@ -112,7 +111,7 @@ export default function QuantumPage(props: NextClientPageProps) {
             Engine Telemetry
           </h3>
           <p className="text-ql-on-surface-variant text-xs mb-6">
-            Current execution mode, available backends, API health, and active job count. Shows whether you're running on real quantum hardware or the local simulator.
+            Current execution mode, available backends, API health, and active job count. Shows whether you&apos;re running on real quantum hardware or the local simulator.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[

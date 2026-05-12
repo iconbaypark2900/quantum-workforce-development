@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pip install --upgrade pip && pip install -r requirements-vercel.txt && pip install .",
+  "installCommand": "pip install --upgrade pip && pip install -r deps/requirements-vercel.txt && pip install .",
   "functions": {
     "api/**/*.py": {
       "excludeFiles": "{web/**,frontend/**,notebooks/**,examples/**,tests/**,huggingface/**,.github/**,.cursor/**,.vscode/**,docs/**/*.md,**/*.test.py,**/test_*.py,__tests__/**,fixtures/**,testdata/**,*.png,*.pdf,*.docx,**/.next/**,**/node_modules/**,**/.git/**}"

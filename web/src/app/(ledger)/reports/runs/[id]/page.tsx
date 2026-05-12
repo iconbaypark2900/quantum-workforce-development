@@ -302,12 +302,21 @@ export default function RunReportPage(props: NextClientPagePropsWithId) {
   }, [bundle, run]);
 
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const handleDownloadPdf = useCallback(async () => {
     if (!run?.id) return;
     setPdfLoading(true);
+    setPdfError(null);
     try {
       await downloadReportPdf(run.id);
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const isDepError = /weasyprint|pdf_dependency|libpango|cairo/i.test(msg);
+      setPdfError(
+        isDepError
+          ? "PDF export requires WeasyPrint on the server. Use \"Print / Save as PDF\" in your browser as a fallback, or ask an admin to install WeasyPrint."
+          : `PDF export failed: ${msg}. Use \"Print / Save as PDF\" as a fallback.`
+      );
       console.error("PDF download failed:", e);
     } finally {
       setPdfLoading(false);
@@ -519,6 +528,14 @@ export default function RunReportPage(props: NextClientPagePropsWithId) {
             >
               {pdfLoading ? "Generating PDF…" : "Download PDF"}
             </button>
+            {pdfError && (
+              <span
+                role="alert"
+                className="basis-full text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-3 py-2 mt-1"
+              >
+                {pdfError}
+              </span>
+            )}
             <Link
               href="/reports"
               className="rounded px-4 py-2 text-sm font-mono border border-ql-border text-ql-muted hover:text-ql-on-surface transition-colors"

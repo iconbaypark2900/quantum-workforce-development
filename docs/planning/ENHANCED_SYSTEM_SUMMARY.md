@@ -120,7 +120,7 @@ The system optimizes for multiple objectives simultaneously:
 4. `core/quantum_inspired/enhanced_stability_enhancer.py` - Enhanced stability features
 5. `frontend/src/EnhancedQuantumDashboard.js` - Enhanced dashboard with advanced features
 6. `frontend/src/App.js` - Updated to use enhanced dashboard
-7. `test_enhanced_system.py` - Comprehensive validation tests
+7. `tests/test_enhanced_system.py` - Comprehensive validation tests
 8. `ENHANCEMENT_PLAN.md` - Detailed enhancement roadmap
 9. `ENHANCEMENT_SUMMARY.md` - This summary document
 

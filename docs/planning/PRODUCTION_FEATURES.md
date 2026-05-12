@@ -64,13 +64,13 @@ cp .env.example .env
 # Edit .env with your configuration
 
 # Start the services
-docker-compose up -d
+docker compose -f deploy/docker/docker-compose.yml up -d
 ```
 
 ### Production Deployment
 ```bash
-# Run the production deployment script
-sudo ./deploy_production.sh
+# Run the archived production deployment script (see legacy/README.md)
+sudo ./legacy/deploy/deploy_production.sh
 ```
 
 ## 📊 API Endpoints

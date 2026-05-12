@@ -1,7 +1,7 @@
 """
 Gradio lite — Portfolio Lab + Quantum Engine surfaces (parity with Next.js `web/`).
 
-  pip install -r requirements-gradio.txt
+  pip install -r deps/requirements-gradio.txt
   python scripts/gradio_portfolio_demo.py
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ if _scripts_dir not in sys.path:
 try:
     import gradio as gr
 except ImportError:
-    print("Install Gradio: pip install -r requirements-gradio.txt", file=sys.stderr)
+    print("Install Gradio: pip install -r deps/requirements-gradio.txt", file=sys.stderr)
     sys.exit(1)
 
 from gradio_lite.api_client import (

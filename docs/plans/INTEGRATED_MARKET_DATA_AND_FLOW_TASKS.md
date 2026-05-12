@@ -25,8 +25,8 @@ This document consolidates work to: **Tiingo-backed prices**, **synthetic + live
 | ID | Coupled work |
 |----|----------------|
 | **2.1** | **`services/market_data.py`:** delegate `fetch_market_data` to `data_provider_v2.fetch_market_data` (or thin wrapper); remove direct `yf.download` from the primary code path. |
-| **2.2** | Update **`enhanced_api.py` / `fixed_enhanced_api.py`** (if still deployed) to use the same entry point. |
-| **2.3** | Update **`examples/basic_qsw_example.py`** and **`test_enhanced_system.py`** to Tiingo or synthetic-only; document required env. |
+| **2.2** | Update **`legacy/api/enhanced_api.py` / `legacy/api/fixed_enhanced_api.py`** (archived; if ever revived) to use the same entry point. |
+| **2.3** | Update **`examples/basic_qsw_example.py`** and **`tests/test_enhanced_system.py`** to Tiingo or synthetic-only; document required env. |
 
 **Exit criteria:** Grep shows no `yfinance` in primary fetch paths outside optional fallback (if you keep it temporarily).
 
@@ -66,7 +66,7 @@ This document consolidates work to: **Tiingo-backed prices**, **synthetic + live
 | ID | Coupled work |
 |----|----------------|
 | **5.1** | If keeping **`YfinanceProvider`** briefly: log **deprecation** when `DATA_PROVIDER=yfinance`. |
-| **5.2** | Remove **`yfinance`** from **`requirements.txt`** after soak; delete **`YfinanceProvider`** and fallback to Tiingo + Alpaca/Polygon only. |
+| **5.2** | Remove **`yfinance`** from **`deps/requirements.txt`** after soak; delete **`YfinanceProvider`** and fallback to Tiingo + Alpaca/Polygon only. |
 | **5.3** | **Docs sweep:** `README`, `GETTING_STARTED`, architecture diagrams, `DOCUMENTATION_INDEX` — replace yfinance-first language. |
 
 **Exit criteria:** `pip install` no longer pulls yfinance (or only as optional extra documented separately).

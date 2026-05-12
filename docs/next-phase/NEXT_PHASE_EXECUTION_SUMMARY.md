@@ -39,7 +39,7 @@ This document summarizes the execution of the Quantum Hybrid Portfolio Next Phas
 **Updated Files:**
 - `.env.example` - Added Braket configuration section
 - `services/portfolio_optimizer.py` - Integrated Braket backend
-- `requirements.txt` - Added `amazon-braket-sdk>=1.60.0`
+- `deps/requirements.txt` - Added `amazon-braket-sdk>=1.60.0`
 
 ---
 
@@ -90,7 +90,7 @@ Comprehensive test suite covering:
 **Usage:**
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 
 # Run tests
 python scripts/test_api_integration.py --base-url http://localhost:5000
@@ -118,8 +118,8 @@ python scripts/test_api_integration.py --base-url http://localhost:5000
 | Data Persistence | Ephemeral | PostgreSQL + Redis |
 
 **Deployment Scripts:**
-- `deploy_hf_spaces.sh` - HF Spaces deployment
-- `deploy_production.sh` - Full production stack (Redis, PostgreSQL, Nginx, systemd)
+- `scripts/deploy_hf_spaces.sh` - HF Spaces deployment
+- `legacy/deploy/deploy_production.sh` - Archived full production stack script (Redis, PostgreSQL, Nginx, systemd); see `legacy/README.md`
 
 ---
 
@@ -148,7 +148,7 @@ DEMO_MODE=true  # Allow demo credentials
 ```
 
 **Updated Files:**
-- `requirements.txt` - Added `flask-jwt-extended>=4.6.0`
+- `deps/requirements.txt` - Added `flask-jwt-extended>=4.6.0`
 - `api.py` - Integrated JWT authentication
 
 ---
@@ -160,7 +160,7 @@ DEMO_MODE=true  # Allow demo credentials
 - In-memory market data cache with TTL
 - SQLite for runtime data (API keys, audit logs)
 - Redis-ready configuration in `.env.example`
-- PostgreSQL deployment script in `deploy_production.sh`
+- PostgreSQL deployment script in archived `legacy/deploy/deploy_production.sh`
 
 **Cache Implementation:**
 ```python
@@ -236,7 +236,7 @@ def cache_set(key, data): ...
 | `api.py` | Enhanced health check, JWT endpoints, Braket integration |
 | `services/portfolio_optimizer.py` | Braket backend integration |
 | `.env.example` | Braket configuration, JWT settings |
-| `requirements.txt` | Added flask-jwt-extended, psutil, braket-sdk |
+| `deps/requirements.txt` | Added flask-jwt-extended, psutil, braket-sdk |
 | `docs/next-phase/PRODUCTION_AND_OPS.md` | Deployment decision |
 | `docs/next-phase/ENGINEERING_BACKLOG.md` | Updated task status |
 
@@ -301,7 +301,7 @@ curl -X POST http://localhost:5000/api/portfolio/optimize \
 ```bash
 # 1. Create Space at https://huggingface.co/new-space (Docker SDK)
 # 2. Deploy
-./deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
+./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name
 ```
 
 ### For Self-Hosted Production
@@ -310,8 +310,8 @@ curl -X POST http://localhost:5000/api/portfolio/optimize \
 cp .env.example .env
 # Edit .env with production values
 
-# 2. Run deployment (requires root)
-sudo ./deploy_production.sh
+# 2. Run archived deployment script (requires root); see legacy/README.md
+sudo ./legacy/deploy/deploy_production.sh
 
 # 3. Verify
 curl http://localhost/health

@@ -14,7 +14,7 @@ dynamic = ["dependencies"]
 app = "api.app:app"
 
 [tool.setuptools.dynamic]
-dependencies = { file = ["requirements-vercel.txt"] }
+dependencies = { file = ["deps/requirements-vercel.txt"] }
 
 [tool.setuptools.packages.find]
 where = ["."]

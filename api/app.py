@@ -39,7 +39,7 @@ from core.portfolio_optimizer import (
 from methods.vqe import MAX_IBM_QUBITS, vqe_weights_ibm_strict
 from methods.qaoa import qaoa_weights_ibm_strict
 from methods.hybrid_pipeline import hybrid_qaoa_weights as _hybrid_qaoa_weights
-from config.api_config import OBJECTIVES_CONFIG, PRESETS_CONFIG
+from config.api_config import OBJECTIVES_CONFIG, PRESETS_CONFIG, REGIME_OPTIMIZER_PARAMS
 from services.constraints import PortfolioConstraints
 from services import ibm_quantum as ibm_quantum_service
 from services import lab_run_service
@@ -1106,6 +1106,12 @@ def optimize_portfolio():
         weight_min = float(data.get('weight_min', data.get('minWeight', 0.005)))
         weight_max = float(data.get('weight_max', data.get('maxWeight', 0.30)))
 
+        # Regime adjustments — factually alter risk aversion and weight cap.
+        regime = str(data.get('regime', 'normal')).lower()
+        regime_params = REGIME_OPTIMIZER_PARAMS.get(regime, REGIME_OPTIMIZER_PARAMS['normal'])
+        lambda_risk = lambda_risk * regime_params['lambda_risk_factor']
+        weight_max = max(0.05, min(1.0, weight_max + regime_params['weight_max_delta']))
+
         # Reproducibility
         seed = int(data.get('seed', 42))
 
@@ -1284,7 +1290,21 @@ def optimize_portfolio():
                 'objective': objective,
                 'weight_min': weight_min,
                 'weight_max': weight_max,
+                'regime': regime,
+                'regime_description': regime_params.get('description', ''),
+                'lambda_risk_applied': round(lambda_risk, 4),
+                'capital': float(data.get('capital', 1.0)),
             },
+            'dollar_holdings': [
+                {
+                    'name': asset_names[i],
+                    'sector': sectors_list[i] if i < len(sectors_list) else 'Unknown',
+                    'weight': float(result.weights[i]),
+                    'dollar_value': float(result.weights[i]) * float(data.get('capital', 1.0)),
+                }
+                for i in range(len(asset_names))
+                if result.weights[i] > 1e-4
+            ],
         }
         if getattr(result, "quantum_metadata", None) is not None:
             response_payload["quantum_metadata"] = _safe_serialize_metrics(
@@ -2939,6 +2959,13 @@ def export_report_pdf(run_id):
         return error_response("run not found", code="NOT_FOUND", status=404)
     try:
         pdf_bytes = report_generator.generate_pdf(run)
+    except report_generator.PdfDependencyMissingError as exc:
+        logger.warning("PDF export unavailable: %s", exc)
+        return error_response(
+            str(exc),
+            code="PDF_DEPENDENCY_MISSING",
+            status=503,
+        )
     except Exception as exc:
         logger.exception("PDF generation failed for run %s", run_id)
         return error_response(f"PDF generation failed: {exc}", code="PDF_ERROR", status=500)
@@ -2947,4 +2974,120 @@ def export_report_pdf(run_id):
         mimetype='application/pdf',
         headers={'Content-Disposition': f'attachment; filename="report-{run_id}.pdf"'},
     )
+
+
+# ---------------------------------------------------------------------------
+# QOBLIB Benchmark Endpoints
+# ---------------------------------------------------------------------------
+
+def _get_qoblib():
+    """Lazy import of qoblib module to avoid startup failures if deps missing."""
+    import sys
+    sys.path.insert(0, _REPO_ROOT)
+    from benchmarks.qoblib import load_instance, list_instances, run_benchmark
+    return load_instance, list_instances, run_benchmark
+
+
+@app.route('/api/simulations/qoblib/instances', methods=['GET'])
+@limiter.limit("60 per minute")
+def qoblib_list_instances():
+    """List all available QOBLIB fixture instances."""
+    try:
+        _, list_instances, _ = _get_qoblib()
+        instances = list_instances()
+        return jsonify({"instances": instances, "count": len(instances)})
+    except Exception as exc:
+        logger.exception("QOBLIB list instances failed")
+        return error_response(str(exc), code="QOBLIB_ERROR", status=500)
+
+
+@app.route('/api/simulations/qoblib/solvers', methods=['GET'])
+@limiter.limit("60 per minute")
+def qoblib_list_solvers():
+    """List available solver backends."""
+    solvers = [
+        {"id": "classical",      "label": "Classical (cvxpy/scipy)", "available": True,  "requires_ibm": False},
+        {"id": "heuristic",      "label": "Heuristic (Diff. Evolution)", "available": True, "requires_ibm": False},
+        {"id": "qaoa_sim",       "label": "QAOA Simulator",          "available": True,  "requires_ibm": False},
+        {"id": "hybrid_router",  "label": "Hybrid Router (auto)",    "available": True,  "requires_ibm": False},
+        {"id": "ibm_quantum",    "label": "IBM Quantum (strict)",    "available": ibm_quantum_service.is_configured(), "requires_ibm": True},
+        {"id": "auto",           "label": "Auto (best available)",   "available": True,  "requires_ibm": False},
+    ]
+    return jsonify({"solvers": solvers})
+
+
+@app.route('/api/simulations/qoblib/run', methods=['POST'])
+@limiter.limit("10 per minute")
+def qoblib_run():
+    """Execute a QOBLIB benchmark run.
+
+    Body: { instance_id: str, backend: str }
+    Returns SolverResult with actual_backend prominently labeled.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    instance_id = str(data.get("instance_id", "")).strip()
+    backend = str(data.get("backend", "classical")).strip()
+
+    if not instance_id:
+        return error_response("instance_id is required", code="VALIDATION_ERROR", status=400)
+
+    ibm_token = None
+    if backend == "ibm_quantum":
+        tenant_id = getattr(g, "tenant_id", "anonymous")
+        if not ibm_quantum_service.is_configured(tenant_id):
+            return error_response(
+                "IBM Quantum backend requested but no token is configured. "
+                "Add your IBMQ token in Settings → IBM Quantum. No classical fallback in strict mode.",
+                code="IBM_NOT_CONFIGURED",
+                status=400,
+            )
+        ibm_token = "configured"  # runner uses ibm_quantum_service directly for actual execution
+
+    try:
+        load_instance, _, run_benchmark = _get_qoblib()
+        instance = load_instance(instance_id)
+    except FileNotFoundError:
+        return error_response(f"Instance '{instance_id}' not found.", code="NOT_FOUND", status=404)
+    except Exception as exc:
+        logger.exception("QOBLIB instance load failed")
+        return error_response(str(exc), code="QOBLIB_ERROR", status=500)
+
+    try:
+        result = run_benchmark(instance, requested_backend=backend, ibm_token=ibm_token)
+    except Exception as exc:
+        logger.exception("QOBLIB run failed for instance=%s backend=%s", instance_id, backend)
+        return error_response(str(exc), code="QOBLIB_RUN_ERROR", status=500)
+
+    return jsonify(result.to_dict())
+
+
+@app.route('/api/simulations/qoblib/runs', methods=['GET'])
+@limiter.limit("60 per minute")
+def qoblib_list_runs():
+    """List all past QOBLIB runs from results/qoblib/results.csv."""
+    import csv
+    csv_path = os.path.join(_REPO_ROOT, "results", "qoblib", "results.csv")
+    runs = []
+    if os.path.exists(csv_path):
+        with open(csv_path, newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                runs.append(row)
+    runs.reverse()  # newest first
+    return jsonify({"runs": runs, "count": len(runs)})
+
+
+@app.route('/api/simulations/qoblib/runs/<run_id>', methods=['GET'])
+@limiter.limit("60 per minute")
+def qoblib_get_run(run_id):
+    """Retrieve a specific QOBLIB run result JSON artifact."""
+    import re as _re
+    if not _re.match(r'^[0-9a-f\-]{36}$', run_id):
+        return error_response("Invalid run_id format.", code="VALIDATION_ERROR", status=400)
+    json_path = os.path.join(_REPO_ROOT, "results", "qoblib", "runs", f"{run_id}.json")
+    if not os.path.exists(json_path):
+        return error_response(f"Run '{run_id}' not found.", code="NOT_FOUND", status=404)
+    with open(json_path) as f:
+        data = json.load(f)
+    return jsonify(data)
 

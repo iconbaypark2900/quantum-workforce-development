@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    container_name: quantum-portfolio-app
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-this-in-production}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://quantum:password@db:5432/quantum_portfolio}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=INFO
+      - MAX_ASSETS=100
+      - MAX_REQUESTS_PER_MINUTE=100
+      - QUANTUM_COMPUTE_TIMEOUT=30
+      - YFINANCE_RATE_LIMIT=2000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ../../logs:/app/logs
+    networks:
+      - quantum-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: quantum-portfolio-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - quantum-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  db:
+    image: postgres:15-alpine
+    container_name: quantum-portfolio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quantum_portfolio
+      POSTGRES_USER: quantum
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - quantum-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantum -d quantum_portfolio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ../../frontend
+    container_name: quantum-portfolio-frontend
+    # This container only exists to produce the build output.
+    # nginx copies the built files via a shared volume.
+    volumes:
+      - frontend_build:/usr/share/nginx/html
+
+  nginx:
+    image: nginx:alpine
+    container_name: quantum-portfolio-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend_build:/usr/share/nginx/html:ro
+    depends_on:
+      - app
+      - frontend
+    networks:
+      - quantum-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitoring:
+    image: prom/prometheus
+    container_name: quantum-portfolio-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - quantum-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  frontend_build:
+
+networks:
+  quantum-net:
+    driver: bridge

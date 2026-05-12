@@ -1,4 +1,0 @@
-# Pinned pair for RuntimeJobV2 / QiskitRuntimeService.jobs (IBM Quantum workloads API).
-# Install: pip install -r requirements.txt -r requirements-ibm-quantum.txt
-qiskit==2.3.1
-qiskit-ibm-runtime==0.46.1

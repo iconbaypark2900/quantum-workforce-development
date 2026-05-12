@@ -25,6 +25,16 @@ REGIME_DESCRIPTIONS: dict[str, str] = {
     "crisis": "Crisis regime — maximum diversification via equal weighting minimizes model risk.",
 }
 
+# Map detector output to the Portfolio Lab regime keys used by REGIME_OPTIMIZER_PARAMS.
+# The lab regime drives lambda_risk and weight_max adjustments in the optimize endpoint.
+LAB_REGIME_FROM_DETECTOR: dict[str, str] = {
+    "bull_low_vol": "bull",
+    "bull_high_vol": "volatile",
+    "bear_low_vol": "bear",
+    "bear_high_vol": "volatile",
+    "crisis": "crisis",
+}
+
 
 def classify_regime_threshold(
     returns: pd.Series,
@@ -122,6 +132,7 @@ def detect_regime(
 
     return {
         "regime": regime,
+        "lab_regime": LAB_REGIME_FROM_DETECTOR.get(regime, "normal"),
         "recommended_objective": REGIME_OBJECTIVES.get(regime, "hybrid"),
         "confidence": round(confidence, 4),
         "metrics": {

@@ -528,6 +528,8 @@ export async function downloadReportPdf(runId: string): Promise<void> {
 
 export interface RegimeResult {
   regime: string;
+  /** Mapped Portfolio Lab regime key: normal/bull/bear/volatile/crisis. */
+  lab_regime?: string;
   recommended_objective: string;
   confidence: number;
   metrics: {

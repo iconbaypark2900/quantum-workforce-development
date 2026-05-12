@@ -102,9 +102,57 @@ def _build_template_context(run: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+class PdfDependencyMissingError(RuntimeError):
+    """Raised when WeasyPrint or its native dependencies are not installed.
+
+    PDF export requires WeasyPrint plus the GTK/Pango/Cairo system libraries.
+    On Debian/Ubuntu: `apt install libpango-1.0-0 libpangoft2-1.0-0 libcairo2`.
+    On macOS: `brew install pango`. Then: `pip install weasyprint`.
+    """
+
+
+def is_pdf_export_available() -> tuple[bool, str | None]:
+    """Lightweight availability check: returns (available, reason_if_not).
+
+    Used by the API/UI to surface a friendly error before attempting export.
+    """
+    try:
+        import weasyprint  # noqa: F401
+        return True, None
+    except ImportError as exc:
+        return False, (
+            f"WeasyPrint is not installed ({exc}). "
+            "Install: pip install weasyprint. On Linux you also need "
+            "libpango-1.0-0 libpangoft2-1.0-0 libcairo2."
+        )
+    except OSError as exc:
+        return False, (
+            f"WeasyPrint native libraries missing ({exc}). "
+            "On Debian/Ubuntu: apt install libpango-1.0-0 libpangoft2-1.0-0 libcairo2. "
+            "On macOS: brew install pango."
+        )
+
+
 def generate_pdf(run: dict[str, Any]) -> bytes:
-    """Render a lab run as a PDF report (HTML→PDF via WeasyPrint)."""
-    from weasyprint import HTML
+    """Render a lab run as a PDF report (HTML→PDF via WeasyPrint).
+
+    Raises:
+        PdfDependencyMissingError: When WeasyPrint or its native deps are missing.
+    """
+    try:
+        from weasyprint import HTML
+    except ImportError as exc:
+        raise PdfDependencyMissingError(
+            f"WeasyPrint is not installed: {exc}. "
+            "Install with: pip install weasyprint. "
+            "Linux requires libpango-1.0-0 libpangoft2-1.0-0 libcairo2 system packages."
+        ) from exc
+    except OSError as exc:
+        raise PdfDependencyMissingError(
+            f"WeasyPrint native libraries failed to load: {exc}. "
+            "On Debian/Ubuntu: apt install libpango-1.0-0 libpangoft2-1.0-0 libcairo2. "
+            "On macOS: brew install pango."
+        ) from exc
 
     env = Environment(loader=FileSystemLoader(_TEMPLATE_DIR), autoescape=True)
     template = env.get_template("report.html")

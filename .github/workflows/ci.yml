@@ -25,14 +25,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('deps/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r deps/requirements.txt
           pip install -e .
 
       - name: Run tests with coverage
@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build backend Docker image
-        run: docker build -t quantum-portfolio-api .
+        run: docker build -f deploy/docker/Dockerfile -t quantum-portfolio-api .
 
       - name: Build frontend Docker image
         run: docker build -t quantum-portfolio-frontend ./frontend

@@ -25,7 +25,7 @@ This project extends the original Quantum Hybrid Portfolio system with advanced 
 
 1. **Install Dependencies** (already done if following the original setup):
    ```bash
-   pip install -r requirements.txt
+   pip install -r deps/requirements.txt
    pip install -e .
    ```
 
@@ -33,7 +33,7 @@ This project extends the original Quantum Hybrid Portfolio system with advanced 
    ```bash
    cd frontend && npm install && npm start
    ```
-   The dashboard will be accessible at `http://localhost:3000`. Use `./run_dashboard.sh` to start both API and dashboard.
+   The dashboard will be accessible at `http://localhost:3000`. Use `./scripts/run_dashboard.sh` to start both API and dashboard.
 
 ### 🛠️ Architecture
 

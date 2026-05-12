@@ -118,7 +118,7 @@ quantum-hybrid-portfolio/
 ├── tests/             # Unit tests (7/7 passing)
 ├── notebooks/         # Jupyter notebooks
 ├── examples/          # Example scripts
-├── requirements.txt   # All dependencies
+├── deps/requirements.txt   # All dependencies
 └── setup.py          # Package configuration
 ```
 
@@ -173,7 +173,7 @@ If tests fail:
 python --version
 
 # Reinstall dependencies
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 ```
 
 ## Resources

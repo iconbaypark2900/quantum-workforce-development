@@ -22,14 +22,14 @@ cd quantum-hybrid-portfolio
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate   # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r deps/requirements.txt
 pip install -e .
 ```
 
 ### 3. Quick verification
 
 ```bash
-python quick_test.py
+python tests/quick_test.py
 ```
 
 Expected output: success message and basic optimization result.

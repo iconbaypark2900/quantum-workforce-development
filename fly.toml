@@ -1,7 +1,7 @@
-# Fly.io configuration for the Flask API app (Dockerfile.fly — gunicorn on PORT, default 5000).
+# Fly.io configuration for the Flask API app (deploy/docker/Dockerfile.fly — gunicorn on PORT, default 5000).
 #
 # IMPORTANT: [[http_service]] internal_port MUST be 5000 for this image.
-# Do NOT use 7860 here — that port is for Hugging Face / root Dockerfile + serve_hf.py only.
+# Do NOT use 7860 here — that port is for Hugging Face / deploy/docker/Dockerfile + serve_hf.py only.
 # If Fly Doctor reports "expected port 7860", your dashboard or an old deploy used the wrong
 # Dockerfile or internal_port; set internal_port = 5000 and redeploy.
 #
@@ -22,7 +22,7 @@ app = 'quantum-hybrid-portfolio'
 primary_region = 'ord'
 
 [build]
-  dockerfile = 'Dockerfile.fly'
+  dockerfile = 'deploy/docker/Dockerfile.fly'
 
 [http_service]
   internal_port = 5000

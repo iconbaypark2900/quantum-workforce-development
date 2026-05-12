@@ -4,7 +4,7 @@ Launch the Gradio **lite** UI — same Flask API flows as the Next.js `web/` app
 
 Prereq: API running, e.g. `python -m api` on :5000
 
-  pip install -r requirements-gradio.txt
+  pip install -r deps/requirements-gradio.txt
   python scripts/gradio_portfolio_demo.py
 
 Options:

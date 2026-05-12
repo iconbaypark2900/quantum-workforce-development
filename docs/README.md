@@ -26,6 +26,8 @@ Welcome to the Quantum Hybrid Portfolio documentation. Guides live under **`docs
 docs/
 ├── README.md                 # This file
 ├── DOCUMENTATION_INDEX.md    # Master index
+├── PROJECT_OVERVIEW.md       # High-level product overview
+├── TECHNICAL_DOCUMENTATION.md # Technical documentation (companion to project/)
 ├── GETTING_STARTED.md        # Install & run (canonical)
 ├── PUBLIC_DEMO.md            # Public demo narrative
 ├── ARCHITECTURE.md
@@ -35,7 +37,8 @@ docs/
 ├── TECHNICAL_PAPER.md
 ├── HUGGINGFACE_SPACES.md
 ├── NEXT_STEPS.md
-├── dashboard/                # Dashboard landing + redirect stubs
+├── dashboard/                # Dashboard walkthroughs, summaries, and supplemental READMEs
+├── specs/                    # Product specs (e.g. core_features_spec PDF/DOCX)
 ├── guides/                   # HOW_TO_RUN, QUICKSTART
 ├── frontend/                 # frontend-guide, ui-design
 ├── project/                  # DIRECTORY_GUIDE, PROJECT_OVERVIEW, etc.
@@ -81,16 +84,16 @@ docs/
 ## Dashboard
 
 - **[DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md)** — **Canonical** user guide for the React dashboard
-- **[dashboard/DASHBOARD_README.md](dashboard/DASHBOARD_README.md)** — Short landing + pointers
+- **[dashboard/DASHBOARD_README.md](dashboard/DASHBOARD_README.md)** — Dashboard overview (supplemental to the canonical guide)
 - **[frontend/frontend-guide.md](frontend/frontend-guide.md)** / **[frontend/ui-design.md](frontend/ui-design.md)** — Frontend and UI notes
 
-Older `dashboard/DASHBOARD_*` redirect stubs point to **DASHBOARD_GUIDE.md**; see **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)**.
+Additional dashboard material lives under **`dashboard/`**; the **canonical** operator guide remains **[DASHBOARD_GUIDE.md](DASHBOARD_GUIDE.md)** — see **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)**.
 
 ## Deployment
 
 - **[HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md)** — Deploy to Hugging Face Spaces
-- **[../docker-compose.yml](../docker-compose.yml)** — Docker Compose configuration
-- **[../deploy_production.sh](../deploy_production.sh)** — Production deployment script
+- **[../deploy/docker/docker-compose.yml](../deploy/docker/docker-compose.yml)** — Docker Compose configuration
+- **[../legacy/deploy/deploy_production.sh](../legacy/deploy/deploy_production.sh)** — Archived production deployment script (`legacy/README.md`)
 
 ## Development
 
