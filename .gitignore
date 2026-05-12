@@ -155,6 +155,11 @@ out/
 # ------------------------------------------------------------------------------
 # Project-specific generated / local data
 # ------------------------------------------------------------------------------
+# Root-only scratch and exports (avoid **/tmp/ — nested tmp may be intentional).
+/tmp/
+/output/
+# Per-run web audit output from scripts/audit-web.sh (canonical: docs/page-audit.json).
+docs/page-audit-run.json
 chang_validation_report.png
 *.log
 data/*.csv
