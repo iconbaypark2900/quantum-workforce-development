@@ -164,31 +164,108 @@ The UI always shows both **Requested Backend** and **Actual Backend** as separat
 
 ---
 
-## Known Gaps and Next Steps
+## Known Gaps and What Needs More Finesse
 
-### High Priority
+### 1. IBM Quantum Real Execution Path
+**Severity: High — feature is currently a stub**
 
-1. **IBM Quantum real job submission** — `runner.py` raises `NotImplementedError` for `ibm_quantum` hardware execution. Requires QUBO → Ising Hamiltonian conversion, circuit construction, job polling, and bitstring → weight extraction via `ibm_quantum_service.py`.
+`benchmarks/qoblib/runner.py` raises `NotImplementedError` for `ibm_quantum` execution:
 
-2. **Tiingo API key error surfacing** — if `TIINGO_API_KEY` is not set, historical mode silently fails. Needs a banner in `usePortfolioLabMarketData.ts` offering synthetic mode as a fallback, with the specific error message (missing key vs. rate limit vs. invalid ticker).
+```python
+# TODO: wire to ibm_quantum_service job submission
+raise NotImplementedError("IBM Quantum hardware submission not yet wired")
+```
 
-### Medium Priority
+The existing `ibm_quantum_service.py` has job submission logic, but the QOBLIB runner doesn't call it. Real wiring requires: QUBO → Ising Hamiltonian conversion, circuit construction at the configured depth, result polling, and extracting the bitstring solution back to portfolio weights. This is a meaningful quantum computing integration task, not just plumbing.
 
-3. **PDF pre-flight check endpoint** — `is_pdf_export_available()` exists but is never called from the UI. Add `GET /api/reports/capabilities` returning `{"pdf_export": bool, "pdf_message": str|null}`; disable the Download PDF button proactively when `pdf_export = false`.
+---
 
-4. **Server-side sensitivity sweep** — with 250 tickers, 20 client-side optimizations (4 objectives × 5 weight-max values) can take 40–100 seconds. A `POST /api/portfolio/sensitivity-sweep` endpoint running parallel scipy solvers would cut this to ~5 seconds.
+### 2. Tiingo API Key and Data Reliability
+**Severity: High — historical mode silently fails without key**
 
-5. **QAOA fixture regression test** — `po_a010_t10_s01.json` includes `benchmark_optimal`. A `/api/simulations/qoblib/validate` endpoint should run all available solvers against the fixture and report gap-to-optimal, usable as a CI health check.
+`usePortfolioLabMarketData.ts` calls `fetchMarketData()` which hits the Flask backend's Tiingo proxy. If `TIINGO_API_KEY` isn't set, the API returns an error but the hook currently has no user-visible fallback state for "historical data unavailable — switch to synthetic." The UI should:
 
-### Low Priority
+- Show a banner when historical fetch fails, offering synthetic mode as a fallback
+- Surface the specific error (no API key vs. rate limit vs. invalid ticker) rather than a generic failure
 
-6. **QOBLIB run history from CSV** — `GET /api/simulations/qoblib/runs` reads from in-memory `_run_store` which clears on server restart. Should read from `results/qoblib/results.csv` as the source of truth.
+---
 
-7. **Per-card stale badges** — Dollar Holdings, Diagnostics, and Universe cards should show a `[Stale]` overlay chip when `selectedTickers` or `regime` changed after the last API run, rather than hiding the card entirely.
+### 3. PDF Pre-flight Check
+**Severity: Medium — user discovers the problem only on click**
 
-8. **Optimize endpoint regime validation** — unknown regime key silently applies default parameters. Should return HTTP 422 for unrecognized regime values.
+`is_pdf_export_available()` exists in `report_generator.py` but the runs list page never calls it. The "Download PDF" button should be replaced with a disabled button + tooltip ("PDF export requires WeasyPrint on this server — contact your admin") when the pre-flight check fails. Currently users only see the error after clicking.
 
-9. **Task queue for large QOBLIB instances** — for instances with many assets, the `/run` endpoint blocks the request thread. A Celery/RQ task queue with a polling status endpoint is the production-grade architecture.
+The fix is a lightweight `GET /api/reports/capabilities` endpoint that returns `{"pdf_export": bool, "pdf_message": str|null}`, called once on page load.
+
+---
+
+### 4. Sensitivity Sweep Performance at Scale
+**Severity: Medium — degrades badly beyond ~50 tickers**
+
+The current sweep runs 20 client-side optimizations (4 objectives × 5 weight-max values) using the JavaScript optimizer. With 250 tickers and a real covariance matrix, each run involves matrix operations that can take 2–5 seconds. The full sweep becomes a 40–100 second blocking operation.
+
+The right fix is a `POST /api/portfolio/sensitivity-sweep` endpoint that accepts the full config and runs all 20 optimizations server-side in parallel (Python's `concurrent.futures.ThreadPoolExecutor` over scipy solvers). The frontend then makes one request and streams or polls progress.
+
+---
+
+### 5. QAOA Simulator Quality and Qubit Tracking
+**Severity: Medium — output is plausible but not validated**
+
+`qaoa_sim_solver.py` attempts to import `core.quantum_inspired.qaoa_optimizer`. If that import fails, it falls back to random restarts. The qubit count and circuit depth reported in the result come from the QUBO encoding dimensions, but the actual simulation fidelity hasn't been validated against known-optimal solutions. The fixture `po_a010_t10_s01` has a `benchmark_optimal` value that should be used as a regression test.
+
+Suggested addition: a `/api/simulations/qoblib/validate` endpoint that runs all solvers against the fixture and reports gap-to-optimal for each, serving as a continuous integration check.
+
+---
+
+### 6. Portfolio Book Per-Card Stale Badges
+**Severity: Low-Medium — missing from original spec**
+
+The plan called for per-card "stale — re-run optimizer" badges on Dollar Holdings, Diagnostics, and Universe cards when `selectedTickers` or `regime` changed after the last API run. The current implementation clears `apiResult` on config change (which causes the cards to disappear), but this is more disruptive than a stale badge. A better pattern: keep `apiResult` visible but overlay a `[Stale]` chip on each affected card.
+
+---
+
+### 7. Browse & Apply localStorage Limits
+**Severity: Low — edge case at large scale**
+
+250 tickers serialized as strings in `savedUniverses` approaches localStorage limits if many universes are saved. No size check exists. At ~50 bytes per ticker symbol × 250 tickers × 10 saved universes = ~125KB — well within the 5MB limit, but worth noting for environments with reduced storage quotas. A soft limit of 20 saved universes with a warning would be sufficient.
+
+---
+
+### 8. Regime Auto-Detect Authorization Flow
+**Severity: Low — works but untested end-to-end**
+
+The auto-detect button calls `fetchRegime()` which uses the axios client. The axios client is configured with the API key from environment variables, but this hasn't been validated end-to-end in a running session due to browser tier restrictions during development. If the API key isn't injected client-side (e.g., in a production build without `NEXT_PUBLIC_API_KEY` set), this silently fails. The error state `regimeAutoError` is displayed but the message won't distinguish "auth failed" from "not enough market data."
+
+---
+
+### 9. QOBLIB Run History Persistence
+**Severity: Low — works per-session but resets on server restart**
+
+Run history is stored in an in-memory `_run_store` dict in `api/app.py`. Restarting the Flask server clears all history. For anything beyond development, this needs to persist to SQLite or the `results/qoblib/results.csv` file. The CSV is already written per run — `GET /api/simulations/qoblib/runs` should read from that file as its source of truth rather than in-memory state.
+
+---
+
+### 10. Report Generator WeasyPrint Install Path
+**Severity: Low — documentation gap**
+
+`PdfDependencyMissingError` includes install instructions, but they differ by OS. On Ubuntu/Debian: `apt install libpango-1.0-0 libharfbuzz0b libpangoft2-1.0-0` + `pip install weasyprint`. On Windows WSL, the native library path requires additional symlinks. A `scripts/install_pdf_deps.sh` that detects the OS and runs the right install sequence would prevent the error entirely in new deployments.
+
+---
+
+### Priority Summary
+
+| # | Item | Severity | Effort |
+|---|---|---|---|
+| 1 | IBM Quantum real job submission wiring | High | Large |
+| 2 | Tiingo error surfacing + fallback banner | High | Small |
+| 3 | PDF pre-flight `/capabilities` endpoint | Medium | Small |
+| 4 | Server-side sensitivity sweep endpoint | Medium | Medium |
+| 5 | QAOA fixture regression test + validate endpoint | Medium | Medium |
+| 6 | Per-card stale badges (not clear/hide) | Low-Medium | Small |
+| 7 | localStorage size guard for saved universes | Low | Tiny |
+| 8 | Regime auto-detect auth error distinction | Low | Small |
+| 9 | QOBLIB run history from CSV | Low | Small |
+| 10 | WeasyPrint OS-aware install script | Low | Small |
 
 ---
 
