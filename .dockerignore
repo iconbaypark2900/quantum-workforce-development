@@ -46,3 +46,6 @@ venv
 .env.local
 *.log
 docker-compose*.yml
+
+# Archived alternate stack (see legacy/README.md)
+legacy/

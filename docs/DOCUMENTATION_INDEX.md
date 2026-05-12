@@ -111,7 +111,7 @@ This is the master index for all Quantum Hybrid Portfolio documentation.
 | Document | Description |
 |----------|-------------|
 | [HUGGINGFACE_SPACES.md](HUGGINGFACE_SPACES.md) | Deploy to Hugging Face Spaces |
-| [../deploy_production.sh](../deploy_production.sh) | Production deployment script |
+| [../legacy/deploy/deploy_production.sh](../legacy/deploy/deploy_production.sh) | Archived production deployment script (see `legacy/README.md`) |
 | [../scripts/deploy_hf_spaces.sh](../scripts/deploy_hf_spaces.sh) | HF Spaces deployment script |
 | [../docker-compose.yml](../docker-compose.yml) | Docker Compose configuration |
 

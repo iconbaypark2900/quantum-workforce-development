@@ -94,7 +94,7 @@ python scripts/test_api_integration.py --base-url http://localhost:5000
 
 ### Deploy to Production
 ```bash
-sudo ./deploy_production.sh
+sudo ./legacy/deploy/deploy_production.sh
 ```
 
 ### Test JWT Authentication

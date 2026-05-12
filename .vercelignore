@@ -1,5 +1,9 @@
 # API-only deploy: exclude UIs and dev assets from upload (saves hundreds of MB vs bundling web/.next).
 # See https://vercel.com/docs/deployments/vercel-ignore
+
+# Archived alternate API/UI stack (not part of Vercel Python bundle)
+legacy
+
 web
 frontend
 
@@ -42,7 +46,6 @@ Dockerfile.*
 docker-compose.yml
 docker-compose*.yml
 
-deploy_production.sh
 scripts/deploy_hf_spaces.sh
 scripts/demo_dashboard_features.sh
 scripts

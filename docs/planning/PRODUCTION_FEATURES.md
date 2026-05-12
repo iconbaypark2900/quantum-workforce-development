@@ -69,8 +69,8 @@ docker-compose up -d
 
 ### Production Deployment
 ```bash
-# Run the production deployment script
-sudo ./deploy_production.sh
+# Run the archived production deployment script (see legacy/README.md)
+sudo ./legacy/deploy/deploy_production.sh
 ```
 
 ## 📊 API Endpoints

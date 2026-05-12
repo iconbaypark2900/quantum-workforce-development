@@ -27,8 +27,8 @@ Checklist-style outline for production hardening and operations. Full details li
   - Usage: `./scripts/deploy_hf_spaces.sh https://huggingface.co/spaces/username/space-name`
   - Creates Docker-based deployment on HF Spaces
 
-- **Self-Hosted Production**: [`deploy_production.sh`](../../deploy_production.sh) (from repo root)
-  - Usage: `sudo ./deploy_production.sh`
+- **Self-Hosted Production** (archived script): [`legacy/deploy/deploy_production.sh`](../../legacy/deploy/deploy_production.sh) (from repo root)
+  - Usage: `sudo ./legacy/deploy/deploy_production.sh`
   - Full production stack: Redis, PostgreSQL, Nginx, systemd services
 
 ### Recommended Approach
@@ -56,7 +56,7 @@ See [PRODUCTION_READINESS_PLAN § 2. Performance Optimization](../planning/PRODU
 
 - [x] Caching layer — in-memory market data cache with TTL; Redis-ready via `.env` / deploy script
 - [x] Database integration — SQLite for runtime API data; PostgreSQL path in self-hosted deploy
-- [ ] Load balancing, health checks, auto-scaling — **infra-dependent** (Nginx/systemd in `deploy_production.sh`; tune autoscaling per target cloud)
+- [ ] Load balancing, health checks, auto-scaling — **infra-dependent** (Nginx/systemd in archived `legacy/deploy/deploy_production.sh`; tune autoscaling per target cloud)
 
 ## 3. Observability
 

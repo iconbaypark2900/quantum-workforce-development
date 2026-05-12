@@ -119,7 +119,7 @@ python scripts/test_api_integration.py --base-url http://localhost:5000
 
 **Deployment Scripts:**
 - `scripts/deploy_hf_spaces.sh` - HF Spaces deployment
-- `deploy_production.sh` - Full production stack (Redis, PostgreSQL, Nginx, systemd)
+- `legacy/deploy/deploy_production.sh` - Archived full production stack script (Redis, PostgreSQL, Nginx, systemd); see `legacy/README.md`
 
 ---
 
@@ -160,7 +160,7 @@ DEMO_MODE=true  # Allow demo credentials
 - In-memory market data cache with TTL
 - SQLite for runtime data (API keys, audit logs)
 - Redis-ready configuration in `.env.example`
-- PostgreSQL deployment script in `deploy_production.sh`
+- PostgreSQL deployment script in archived `legacy/deploy/deploy_production.sh`
 
 **Cache Implementation:**
 ```python
@@ -310,8 +310,8 @@ curl -X POST http://localhost:5000/api/portfolio/optimize \
 cp .env.example .env
 # Edit .env with production values
 
-# 2. Run deployment (requires root)
-sudo ./deploy_production.sh
+# 2. Run archived deployment script (requires root); see legacy/README.md
+sudo ./legacy/deploy/deploy_production.sh
 
 # 3. Verify
 curl http://localhost/health

@@ -192,7 +192,7 @@ def health_detailed():
 - [ ] Secrets: stored via `vercel env` (encrypted) ✅
 - [ ] SQLite: not applicable (serverless, use external DB) — Neon Postgres recommended (TLS + at-rest encryption)
 
-### Self-Hosted (`deploy_production.sh`)
+### Self-Hosted (`legacy/deploy/deploy_production.sh`, archived)
 
 - [ ] Nginx: confirm HTTPS with Let's Encrypt cert renewal via `certbot` is configured
 - [ ] SQLite: file permissions `600` on DB file; if on shared host, evaluate `sqlcipher` (SQLite encryption extension)
