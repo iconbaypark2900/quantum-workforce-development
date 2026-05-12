@@ -2967,6 +2967,33 @@ def export_config_manifest():
     })
 
 
+@app.route('/api/reports/capabilities', methods=['GET'])
+@require_api_key
+@limiter.limit("60 per minute")
+def reports_capabilities():
+    """Pre-flight check for report-export features.
+
+    Lets the UI disable the "Download PDF" button (with an explanatory
+    tooltip) when WeasyPrint or its native libs aren't installed, instead
+    of failing only after the user clicks. Cheap to call: a single import
+    probe via :func:`services.report_generator.is_pdf_export_available`.
+
+    Response body::
+
+        {
+          "pdf_export": bool,
+          "pdf_message": str | None,   # null when pdf_export is True
+        }
+
+    Closes QOBLIB overhaul gap #3.
+    """
+    pdf_available, pdf_message = report_generator.is_pdf_export_available()
+    return success_response({
+        "pdf_export": bool(pdf_available),
+        "pdf_message": pdf_message,
+    })
+
+
 @app.route('/api/export/report/<run_id>.pdf')
 @require_api_key
 @limiter.limit("10 per minute")

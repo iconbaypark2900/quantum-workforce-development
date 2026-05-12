@@ -503,6 +503,25 @@ export function streamRun(
 }
 
 /**
+ * Pre-flight: which report-export features are available on this server?
+ * Lets the UI disable the "Download PDF" button + tooltip the reason when
+ * WeasyPrint isn't installed, instead of surfacing the error only on click.
+ *
+ * Closes QOBLIB overhaul gap #3.
+ */
+export interface ReportsCapabilities {
+  pdf_export: boolean;
+  /** Human-readable reason when ``pdf_export`` is false; null otherwise. */
+  pdf_message: string | null;
+}
+
+export async function fetchReportsCapabilities(): Promise<ReportsCapabilities> {
+  const res = await api.get("/api/reports/capabilities");
+  // Interceptor unwraps {data, meta} to res.data already.
+  return res.data as ReportsCapabilities;
+}
+
+/**
  * Download a server-rendered PDF report for a lab run.
  * Uses fetch+Blob to attach the X-API-Key header (plain <a> cannot).
  */
