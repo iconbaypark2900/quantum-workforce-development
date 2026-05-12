@@ -34,8 +34,8 @@ docs/**
 api_output.log
 api_config_patch.py
 chang_validation_report.png
-core_features_spec.pdf
-core_features_spec.docx
+docs/specs/core_features_spec.pdf
+docs/specs/core_features_spec.docx
 
 Dockerfile
 Dockerfile.*
@@ -43,6 +43,6 @@ docker-compose.yml
 docker-compose*.yml
 
 deploy_production.sh
-deploy_hf_spaces.sh
-demo_dashboard_features.sh
+scripts/deploy_hf_spaces.sh
+scripts/demo_dashboard_features.sh
 scripts
