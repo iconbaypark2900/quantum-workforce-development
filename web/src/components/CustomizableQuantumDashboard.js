@@ -32,6 +32,53 @@ import TickerSearch from "@/components/dashboard/TickerSearch";
 import DataSourceBadge from "@/components/dashboard/DataSourceBadge";
 import SensitivityLabPanel from "@/components/SensitivityLabPanel";
 
+/**
+ * Maps the structured ``MarketDataError.code`` from ``/api/market-data`` to
+ * the copy + tone the banner uses. Codes mirror ``services/data_provider_v2``
+ * (Gap #2: Tiingo error surfacing). Generic / unknown codes fall through
+ * to the default branch with the raw backend message.
+ *
+ * Tone:
+ *   "config"  — server-side config issue (no key, bad key); warning palette
+ *   "retry"   — transient failure user can retry; warning palette
+ *   "input"   — user-provided input wrong (bad ticker); negative palette
+ *   "error"   — generic / unknown failure; negative palette
+ */
+function getMarketDataErrorCopy(code, fallbackMessage) {
+  switch (code) {
+    case "TIINGO_NO_API_KEY":
+      return {
+        tone: "config",
+        title: "Historical data unavailable",
+        body: "Tiingo is the configured market-data provider but TIINGO_API_KEY is not set on this server. Switch to synthetic mode for an offline demo, or contact your admin to configure the key.",
+      };
+    case "TIINGO_AUTH_FAILED":
+      return {
+        tone: "config",
+        title: "Tiingo rejected the API key",
+        body: "The Tiingo token is missing or invalid. Switch to synthetic mode, or contact your admin to rotate the key.",
+      };
+    case "TIINGO_RATE_LIMITED":
+      return {
+        tone: "retry",
+        title: "Tiingo rate limit reached",
+        body: "Too many requests in a short window. Wait a moment and retry, or use synthetic mode while you wait.",
+      };
+    case "TIINGO_INVALID_TICKER":
+      return {
+        tone: "input",
+        title: "No price data for these tickers",
+        body: "Tiingo returned no rows for any requested symbol. Check spelling and exchange suffixes, or switch to synthetic mode.",
+      };
+    default:
+      return {
+        tone: "error",
+        title: "Market data fetch failed",
+        body: fallbackMessage || "Couldn't load historical prices. Retry, or switch to synthetic mode for an offline demo.",
+      };
+  }
+}
+
 const TICKER_UNIVERSE_PRESETS = [
   { name: "Mag 7", tickers: ["AAPL", "MSFT", "GOOGL", "META", "NVDA", "AMZN", "TSLA"] },
   { name: "Finance tilt", tickers: ["JPM", "BAC", "GS", "MS", "C", "V", "MA", "BRK.B"] },
@@ -1198,6 +1245,7 @@ export default function QuantumPortfolioDashboard() {
     setEndDate,
     liveLoading,
     liveError: liveMarketError,
+    liveErrorCode: liveMarketErrorCode,
     loadLiveMarketData,
     data,
     isLiveLoaded,
@@ -2090,11 +2138,108 @@ export default function QuantumPortfolioDashboard() {
                 >
                   {liveLoading ? "Loading…" : selectedTickers.length === 0 ? "Select tickers first" : "Load market data"}
                 </button>
-                {liveMarketError && (
-                  <div style={{ marginTop: 6, fontSize: 10, color: t.red, fontFamily: FONT.mono }}>
-                    {liveMarketError}
-                  </div>
-                )}
+                {liveMarketError && (() => {
+                  const copy = getMarketDataErrorCopy(liveMarketErrorCode, liveMarketError);
+                  const isWarning = copy.tone === "config" || copy.tone === "retry";
+                  const accentColor = isWarning ? t.accentWarm : t.red;
+                  const bgColor = isWarning ? t.accentWarmDim : t.redDim;
+                  return (
+                    <div
+                      role="alert"
+                      style={{
+                        marginTop: 8,
+                        padding: 8,
+                        borderRadius: 4,
+                        border: `1px solid ${accentColor}`,
+                        background: bgColor,
+                        fontFamily: FONT.sans,
+                      }}
+                    >
+                      <div style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: accentColor,
+                        fontFamily: FONT.mono,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        marginBottom: 4,
+                      }}>
+                        {copy.title}
+                        {liveMarketErrorCode && (
+                          <span style={{
+                            marginLeft: 6,
+                            fontSize: 8,
+                            opacity: 0.7,
+                            letterSpacing: "0.02em",
+                          }}>
+                            [{liveMarketErrorCode}]
+                          </span>
+                        )}
+                      </div>
+                      <div style={{
+                        fontSize: 10,
+                        color: t.text,
+                        lineHeight: 1.45,
+                        marginBottom: 8,
+                      }}>
+                        {copy.body}
+                      </div>
+                      {/* Show the raw backend message in muted tone for debuggability,
+                          but only when it adds info beyond the banner copy. */}
+                      {liveMarketError && liveMarketError !== copy.body && (
+                        <div style={{
+                          fontSize: 9,
+                          color: t.textMuted,
+                          fontFamily: FONT.mono,
+                          marginBottom: 8,
+                          wordBreak: "break-word",
+                        }}>
+                          {liveMarketError}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setMarketMode("synthetic")}
+                          style={{
+                            flex: 1,
+                            padding: "6px 8px",
+                            fontSize: 10,
+                            fontFamily: FONT.mono,
+                            fontWeight: 600,
+                            borderRadius: 3,
+                            border: `1px solid ${accentColor}`,
+                            background: accentColor,
+                            color: t.bg,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Switch to synthetic
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void loadLiveMarketData()}
+                          disabled={liveLoading || selectedTickers.length === 0}
+                          style={{
+                            flex: 1,
+                            padding: "6px 8px",
+                            fontSize: 10,
+                            fontFamily: FONT.mono,
+                            fontWeight: 600,
+                            borderRadius: 3,
+                            border: `1px solid ${accentColor}`,
+                            background: "transparent",
+                            color: accentColor,
+                            cursor: liveLoading ? "not-allowed" : "pointer",
+                            opacity: liveLoading ? 0.6 : 1,
+                          }}
+                        >
+                          {liveLoading ? "Retrying…" : "Retry"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {isLiveLoaded && (
                   <div style={{ marginTop: 6, fontSize: 10, color: t.green, fontFamily: FONT.mono }}>
                     ✓ {data.assets.length} assets loaded — ready for Backend API below

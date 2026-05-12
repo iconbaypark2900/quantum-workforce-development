@@ -8,7 +8,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 
-import { extractApiErrorMessage } from "./apiError";
+import { ApiError, extractApiErrorCode, extractApiErrorMessage } from "./apiError";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
@@ -99,8 +99,9 @@ api.interceptors.response.use(
 
     const respData = error.response?.data;
     const message = extractApiErrorMessage(error, respData);
+    const code = extractApiErrorCode(respData);
 
-    return Promise.reject(new Error(message));
+    return Promise.reject(new ApiError(message, code, status ?? null));
   }
 );
 
@@ -583,5 +584,9 @@ export interface CircuitMetadata {
   noise_model_type: string;
   execute_time_s: number;
 }
+
+// Re-export ApiError so callers can branch on instanceof / .code via the
+// same ``@/lib/api`` entry point they already use for fetch helpers.
+export { ApiError } from "./apiError";
 
 export default api;

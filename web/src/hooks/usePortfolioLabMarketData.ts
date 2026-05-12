@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { fetchMarketData } from "@/lib/api";
+import { ApiError, fetchMarketData } from "@/lib/api";
 import {
   apiMarketPayloadToLabShape,
   type CovarianceSource,
@@ -10,6 +10,21 @@ import {
   type ReturnsSource,
 } from "@/lib/marketDataAdapter";
 import { generateMarketData } from "@/lib/simulationEngine";
+
+/**
+ * Stable structured error codes the hook surfaces to the UI. Mirrors the
+ * ``MarketDataError`` hierarchy in ``services/data_provider_v2.py``. The UI
+ * uses ``liveErrorCode`` to render an actionable banner with the right CTA
+ * (e.g. "switch to synthetic" for ``TIINGO_NO_API_KEY``).
+ */
+export type MarketDataErrorCode =
+  | "TIINGO_NO_API_KEY"
+  | "TIINGO_AUTH_FAILED"
+  | "TIINGO_RATE_LIMITED"
+  | "TIINGO_INVALID_TICKER"
+  | "MARKET_DATA_FETCH_FAILED"
+  | "BAD_REQUEST"
+  | "INTERNAL_ERROR";
 
 /**
  * Data modes:
@@ -51,6 +66,9 @@ export function usePortfolioLabMarketData(
   const [endDate, setEndDate] = useState(todayISO);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
+  const [liveErrorCode, setLiveErrorCode] = useState<MarketDataErrorCode | null>(
+    null
+  );
   const [liveLabData, setLiveLabData] = useState<LabMarketData | null>(null);
 
   // Stable string key for memo deps — prevents referential churn from the array prop.
@@ -88,6 +106,7 @@ export function usePortfolioLabMarketData(
   const loadLiveMarketData = useCallback(async () => {
     setLiveLoading(true);
     setLiveError(null);
+    setLiveErrorCode(null);
     try {
       const tickers = tickerKey
         .split(",")
@@ -104,6 +123,14 @@ export function usePortfolioLabMarketData(
       setNAssets(lab.assets.length);
     } catch (e) {
       setLiveError(e instanceof Error ? e.message : String(e));
+      // ``ApiError.code`` mirrors the backend's ``MarketDataError.code``
+      // (e.g. ``TIINGO_NO_API_KEY``) — drive the banner CTA off this rather
+      // than parsing the free-text message.
+      if (e instanceof ApiError && e.code) {
+        setLiveErrorCode(e.code as MarketDataErrorCode);
+      } else {
+        setLiveErrorCode(null);
+      }
       setLiveLabData(null);
     } finally {
       setLiveLoading(false);
@@ -115,6 +142,7 @@ export function usePortfolioLabMarketData(
     if (marketMode === "synthetic") {
       setLiveLabData(null);
       setLiveError(null);
+      setLiveErrorCode(null);
     }
   }, [marketMode]);
 
@@ -123,6 +151,7 @@ export function usePortfolioLabMarketData(
     if (!isRealDataMode) return;
     setLiveLabData(null);
     setLiveError(null);
+    setLiveErrorCode(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickerKey, startDate, endDate, marketMode]);
 
@@ -145,6 +174,7 @@ export function usePortfolioLabMarketData(
     setEndDate,
     liveLoading,
     liveError,
+    liveErrorCode,
     loadLiveMarketData,
     data,
     isLiveLoaded: isRealDataMode && liveLabData !== null,
