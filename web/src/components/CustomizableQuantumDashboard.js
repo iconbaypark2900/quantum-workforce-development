@@ -10,7 +10,7 @@ import {
   ScatterChart, Scatter, ReferenceLine, Brush,
 } from "recharts";
 import {
-  DashboardThemeContext, useTheme, themeForResolved,
+  DashboardThemeContext, darkTheme, useTheme, themeForResolved,
   CHART_COLORS, STRATEGY_COLORS, FONT,
 } from "@/lib/theme";
 import { useThemePreference } from "@/context/ThemeContext";
@@ -21,7 +21,7 @@ import {
 } from "@/lib/simulationEngine";
 import {
   optimizePortfolio, setIbmQuantumToken, clearIbmQuantumToken, getIbmQuantumStatus,
-  createLabRun,
+  createLabRun, fetchRegime,
 } from "@/lib/api";
 import { usePortfolioLabMarketData } from "@/hooks/usePortfolioLabMarketData";
 import { usePortfolioLabConfig } from "@/hooks/usePortfolioLabConfig";
@@ -129,10 +129,11 @@ function formatTooltipNumber(name, value) {
 }
 
 const REGIMES = [
-  { key: "normal", label: "Normal", icon: "●", hint: "Baseline correlation & vol" },
-  { key: "bull", label: "Bull", icon: "▲", hint: "Higher drift, lower vol" },
-  { key: "bear", label: "Bear", icon: "▼", hint: "Risk-off tilt" },
-  { key: "volatile", label: "Volatile", icon: "◆", hint: "Wider spreads" },
+  { key: "normal",   label: "Normal",   icon: "●", hint: "Baseline — no adjustment to optimizer parameters." },
+  { key: "bull",     label: "Bull",     icon: "▲", hint: "Bull: λ × 0.5 (half risk aversion), max-weight +3pp. Allows more aggressive concentration." },
+  { key: "bear",     label: "Bear",     icon: "▼", hint: "Bear: λ × 2.0 (double risk aversion), max-weight −5pp. Forces broader diversification." },
+  { key: "volatile", label: "Volatile", icon: "◆", hint: "Volatile: λ × 1.5, max-weight −3pp. Penalizes high-variance allocations." },
+  { key: "crisis",   label: "Crisis",   icon: "⚠", hint: "Crisis: λ × 3.0, max-weight −8pp. Maximum defensive posture. Pair with Min Variance or HRP." },
 ];
 
 /** Hybrid: API auto when null. */
@@ -520,8 +521,10 @@ function UniverseLabFacts({ snap }) {
   const ctxLine = liveStandIn
     ? `Showing synthetic stand-in — click Load to fetch historical prices (${startDate} → ${endDate}).`
     : marketMode === "synthetic"
-      ? `Regime ${regimeLabel} · seed ${dataSeed} · ${days}d return paths drive covariance.`
-      : `Window ${startDate} → ${endDate} · ${days}d series · ${covSourceNote} ${returnsNote}`;
+      ? `Synthetic demo · Regime ${regimeLabel} · seed ${dataSeed} · ${days}d generated paths.`
+      : marketMode === "live"
+        ? `Live (today) · window ${startDate} → ${endDate} · ${days}d series · ${covSourceNote} ${returnsNote}`
+        : `Historical · window ${startDate} → ${endDate} · ${days}d series · ${covSourceNote} ${returnsNote}`;
 
   const cell = (label, val) => (
     <div style={{ padding: "6px 8px", background: t.surface, borderRadius: 4, border: `1px solid ${t.border}` }}>
@@ -597,8 +600,43 @@ function UniverseLabFacts({ snap }) {
   );
 }
 
-function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelectedTickers }) {
+const SAVED_UNIVERSES_KEY = "qp_saved_universes";
+
+function loadSavedUniverses() {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(SAVED_UNIVERSES_KEY) : null;
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelectedTickers, currentTickers }) {
   const t = useTheme();
+  const [savedUniverses, setSavedUniverses] = useState(() => loadSavedUniverses());
+  const [saveName, setSaveName] = useState("");
+  const [showSaveForm, setShowSaveForm] = useState(false);
+
+  const handleSaveCurrent = useCallback(() => {
+    const name = saveName.trim() || `Universe ${savedUniverses.length + 1}`;
+    const tickers = currentTickers && currentTickers.length > 0
+      ? currentTickers
+      : (data?.assets ?? []).map((a) => a.name);
+    if (!tickers.length) return;
+    const updated = [...savedUniverses, { name, tickers, savedAt: new Date().toISOString() }];
+    setSavedUniverses(updated);
+    try { localStorage.setItem(SAVED_UNIVERSES_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    setSaveName("");
+    setShowSaveForm(false);
+  }, [saveName, savedUniverses, currentTickers, data]);
+
+  const handleDeleteSaved = useCallback((idx) => {
+    const updated = savedUniverses.filter((_, i) => i !== idx);
+    setSavedUniverses(updated);
+    try { localStorage.setItem(SAVED_UNIVERSES_KEY, JSON.stringify(updated)); } catch { /* ignore */ }
+    if (universeBrowse === `saved_${idx}`) setUniverseBrowse("current");
+  }, [savedUniverses, universeBrowse, setUniverseBrowse]);
+
   const browseRows = useMemo(() => {
     if (universeBrowse === "current") {
       return (data?.assets ?? []).map((a) => ({
@@ -607,6 +645,11 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
         annR: a.annReturn,
         annV: a.annVol,
       }));
+    }
+    if (universeBrowse.startsWith("saved_")) {
+      const idx = parseInt(universeBrowse.slice(6), 10);
+      const saved = savedUniverses[idx];
+      return (saved?.tickers ?? []).map((sym) => ({ sym, sector: "—", annR: null, annV: null }));
     }
     const list =
       universeBrowse === "mag7"
@@ -617,28 +660,64 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
             ? [...DEFAULT_TICKERS]
             : [];
     return list.map((sym) => ({ sym, sector: "—", annR: null, annV: null }));
-  }, [universeBrowse, data]);
+  }, [universeBrowse, data, savedUniverses]);
 
   const applyBrowsePreset = useCallback(() => {
     if (universeBrowse === "current") return;
-    const list =
-      universeBrowse === "mag7"
-        ? TICKER_UNIVERSE_PRESETS[0].tickers
-        : universeBrowse === "finance"
-          ? TICKER_UNIVERSE_PRESETS[1].tickers
-          : universeBrowse === "default10"
-            ? [...DEFAULT_TICKERS]
-            : [];
+    let list = [];
+    if (universeBrowse.startsWith("saved_")) {
+      const idx = parseInt(universeBrowse.slice(6), 10);
+      list = savedUniverses[idx]?.tickers ?? [];
+    } else {
+      list =
+        universeBrowse === "mag7"
+          ? TICKER_UNIVERSE_PRESETS[0].tickers
+          : universeBrowse === "finance"
+            ? TICKER_UNIVERSE_PRESETS[1].tickers
+            : universeBrowse === "default10"
+              ? [...DEFAULT_TICKERS]
+              : [];
+    }
     if (list.length) setSelectedTickers([...list]);
-  }, [universeBrowse, setSelectedTickers]);
+  }, [universeBrowse, savedUniverses, setSelectedTickers]);
 
   return (
     <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${t.border}` }}>
-      <div style={{ fontSize: 10, color: t.textMuted, fontFamily: FONT.mono, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8, fontWeight: 700 }}>
-        Browse & apply universes
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: 10, color: t.textMuted, fontFamily: FONT.mono, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 700 }}>
+          Browse & apply universes
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowSaveForm((v) => !v)}
+          title="Save your current ticker selection as a named universe"
+          style={{ fontSize: 10, fontFamily: FONT.mono, padding: "3px 8px", borderRadius: 4, cursor: "pointer", border: `1px solid ${t.border}`, background: t.surfaceLight, color: t.textMuted }}
+        >
+          + Save current
+        </button>
       </div>
+      {showSaveForm && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 10, alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="Universe name…"
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSaveCurrent()}
+            style={{ flex: 1, fontSize: 11, fontFamily: FONT.mono, padding: "5px 8px", borderRadius: 4, border: `1px solid ${t.border}`, background: t.bg, color: t.text }}
+          />
+          <button type="button" onClick={handleSaveCurrent}
+            style={{ fontSize: 11, fontFamily: FONT.mono, fontWeight: 600, padding: "5px 10px", borderRadius: 4, border: `1px solid ${t.accent}`, background: t.accentDim, color: t.accent, cursor: "pointer" }}>
+            Save
+          </button>
+          <button type="button" onClick={() => setShowSaveForm(false)}
+            style={{ fontSize: 11, fontFamily: FONT.mono, padding: "5px 8px", borderRadius: 4, border: `1px solid ${t.border}`, background: "transparent", color: t.textDim, cursor: "pointer" }}>
+            ×
+          </button>
+        </div>
+      )}
       <p style={{ fontSize: 10, color: t.textDim, margin: "0 0 10px", lineHeight: 1.45, fontFamily: FONT.sans }}>
-        Pick a list to inspect. Presets match the sidebar chips; &quot;Use in sidebar&quot; copies symbols into Data universe for the next run.
+        Pick a list to inspect or apply. Save your own selections using &quot;+ Save current&quot; above.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <label htmlFor="universe-browse-select" style={{ fontSize: 10, fontFamily: FONT.mono, color: t.textMuted }}>
@@ -666,6 +745,9 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
           <option value="mag7">Mag 7 ({TICKER_UNIVERSE_PRESETS[0].tickers.length} tickers)</option>
           <option value="finance">Finance tilt ({TICKER_UNIVERSE_PRESETS[1].tickers.length} tickers)</option>
           <option value="default10">Default 10 — seed mix ({DEFAULT_TICKERS.length})</option>
+          {savedUniverses.map((u, i) => (
+            <option key={`saved_${i}`} value={`saved_${i}`}>{u.name} ({u.tickers.length} tickers) — saved</option>
+          ))}
         </select>
         {universeBrowse !== "current" && (
           <button
@@ -684,6 +766,16 @@ function UniverseMainSection({ data, universeBrowse, setUniverseBrowse, setSelec
             }}
           >
             Use in sidebar
+          </button>
+        )}
+        {universeBrowse.startsWith("saved_") && (
+          <button
+            type="button"
+            onClick={() => handleDeleteSaved(parseInt(universeBrowse.slice(6), 10))}
+            style={{ fontSize: 11, fontFamily: FONT.mono, padding: "6px 8px", borderRadius: 4, border: `1px solid ${t.border}`, background: "transparent", color: t.red ?? t.accentWarm, cursor: "pointer" }}
+            title="Delete this saved universe"
+          >
+            Delete
           </button>
         )}
       </div>
@@ -937,6 +1029,9 @@ export default function QuantumPortfolioDashboard() {
 
   const [nAssets, setNAssets] = useState(20);
   const [regime, setRegime] = useState("normal");
+  const [regimeAutoLoading, setRegimeAutoLoading] = useState(false);
+  const [regimeAutoInfo, setRegimeAutoInfo] = useState(null);
+  const [regimeAutoError, setRegimeAutoError] = useState(null);
   const [objective, setObjective] = useState("hybrid");
   const [cardinality, setCardinality] = useState(null);
   const [kScreen, setKScreen] = useState(null);
@@ -996,7 +1091,7 @@ export default function QuantumPortfolioDashboard() {
       !isDefaultUniverse || session.lastOptimize != null;
     if (shouldSyncTickers && sTickers.length > 0) {
       setSelectedTickers([...sTickers]);
-      setNAssets(Math.min(sTickers.length, 30));
+      setNAssets(Math.min(sTickers.length, 250));
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1144,7 +1239,10 @@ export default function QuantumPortfolioDashboard() {
         objective,
         weight_min: weightMin,
         maxWeight: weightMax,
+        weight_max: weightMax,
         seed: dataSeed,
+        regime,
+        capital: notional,
       };
       if (cardinality != null) payload.K = cardinality;
       if (kScreen != null) payload.K_screen = kScreen;
@@ -1204,7 +1302,7 @@ export default function QuantumPortfolioDashboard() {
       weight_min: weightMin,
       weight_max: weightMax,
       seed: dataSeed,
-      data_mode: isLiveLoaded ? "live" : "synthetic",
+      data_mode: isLiveLoaded ? marketMode : "synthetic",
       regime,
       tickers: data.assets.map(a => a.name),
     };
@@ -1279,7 +1377,7 @@ export default function QuantumPortfolioDashboard() {
       : names.length <= 6
         ? names.join(", ")
         : `${names.slice(0, 6).join(", ")} +${names.length - 6}`;
-    const liveStandIn = marketMode === "live" && !isLiveLoaded;
+    const liveStandIn = (marketMode === "historical" || marketMode === "live") && !isLiveLoaded;
     const regimeLabel = REGIMES.find((r) => r.key === regime)?.label ?? regime;
     return {
       n,
@@ -1519,26 +1617,59 @@ export default function QuantumPortfolioDashboard() {
     });
   }, [data, objective, weightMin]);
 
+  /** Snapshot of the sidebar config used by the last sensitivity sweep.
+   *  When current sidebar values diverge from this, a "stale" warning is shown
+   *  and the user clicks "Run sweep" to refresh.
+   */
+  const [sweepConfig, setSweepConfig] = useState({
+    objective: objective,
+    weightMin: weightMin,
+    weightMax: weightMax,
+    regime: regime,
+  });
+
+  /** Has the sidebar drifted from the last sweep snapshot? */
+  const sweepIsStale = useMemo(() => (
+    sweepConfig.objective !== objective ||
+    sweepConfig.weightMin !== weightMin ||
+    sweepConfig.weightMax !== weightMax ||
+    sweepConfig.regime !== regime
+  ), [sweepConfig, objective, weightMin, weightMax, regime]);
+
+  /** Pick the heatmap objectives dynamically: current sidebar objective + its
+   *  neighbors (prefer same group). Always returns 4 distinct objectives so the
+   *  table layout is stable.
+   */
+  const heatmapObjectives = useMemo(() => {
+    if (!objectiveOptions?.length) {
+      return [
+        { value: "markowitz", label: "Markowitz" },
+        { value: "hrp", label: "HRP" },
+        { value: "hybrid", label: "Hybrid" },
+        { value: "min_variance", label: "Min Var" },
+      ];
+    }
+    const current = objectiveOptions.find((o) => o.value === sweepConfig.objective) || objectiveOptions[0];
+    const sameGroup = objectiveOptions.filter((o) => o.group === current.group && o.value !== current.value);
+    const others = objectiveOptions.filter((o) => o.group !== current.group);
+    const picks = [current, ...sameGroup, ...others].slice(0, 4);
+    return picks.map((o) => ({ value: o.value, label: o.label }));
+  }, [objectiveOptions, sweepConfig.objective]);
+
   const sensitivityHeatmap = useMemo(() => {
     if (!data?.assets?.length) return { rows: [], wSteps: [], maxS: 1, minS: 0 };
     const wSteps = [0.10, 0.15, 0.20, 0.25, 0.30];
-    const objs = [
-      { value: "markowitz", label: "Markowitz" },
-      { value: "hrp", label: "HRP" },
-      { value: "hybrid", label: "Hybrid" },
-      { value: "min_variance", label: "Min Var" },
-    ];
     const cache = new Map();
     const sharpeAt = (objectiveVal, w) => {
       const k = `${objectiveVal}|${w}`;
       if (cache.has(k)) return cache.get(k);
-      const sh = runOptimisation(data, { objective: objectiveVal, wMin: weightMin, wMax: w }).sharpe;
+      const sh = runOptimisation(data, { objective: objectiveVal, wMin: sweepConfig.weightMin, wMax: w }).sharpe;
       cache.set(k, sh);
       return sh;
     };
     let maxS = -Infinity;
     let minS = Infinity;
-    const rows = objs.map((o) => {
+    const rows = heatmapObjectives.map((o) => {
       const cells = wSteps.map((w) => {
         const sh = sharpeAt(o.value, w);
         maxS = Math.max(maxS, sh);
@@ -1551,7 +1682,33 @@ export default function QuantumPortfolioDashboard() {
     if (!Number.isFinite(minS)) minS = 0;
     if (minS === maxS) minS -= 0.01;
     return { rows, wSteps, maxS, minS };
-  }, [data, weightMin]);
+  }, [data, sweepConfig, heatmapObjectives]);
+
+  const runSensitivitySweep = useCallback(() => {
+    setSweepConfig({ objective, weightMin, weightMax, regime });
+  }, [objective, weightMin, weightMax, regime]);
+
+  const handleAutoDetectRegime = useCallback(async () => {
+    setRegimeAutoLoading(true);
+    setRegimeAutoError(null);
+    try {
+      const tickersForDetect = selectedTickers?.length ? selectedTickers.slice(0, 10) : ["SPY"];
+      const r = await fetchRegime(tickersForDetect, "threshold");
+      const labRegime = r.lab_regime || "normal";
+      setRegime(labRegime);
+      setRegimeAutoInfo({
+        detector: r.regime,
+        labRegime,
+        vol: r.metrics?.realized_vol_annualized,
+        ret: r.metrics?.recent_return_annualized,
+        ts: new Date().toLocaleTimeString(),
+      });
+    } catch (e) {
+      setRegimeAutoError(e?.message || String(e));
+    } finally {
+      setRegimeAutoLoading(false);
+    }
+  }, [selectedTickers]);
 
   /** Closest heatmap column index to sidebar max weight (for highlight). */
   const sensitivityHeatmapColIdx = useMemo(() => {
@@ -1819,22 +1976,24 @@ export default function QuantumPortfolioDashboard() {
               Open the <span style={{ color: t.accent, fontWeight: 600 }}>Portfolio</span> tab and scroll to <span style={{ color: t.accent, fontWeight: 600 }}>Universe &amp; market data</span> (<a href="#portfolio-universe" style={{ color: t.accent }}>#portfolio-universe</a>) for the lab snapshot and browse/apply lists.
             </p>
             <ControlLabel>Mode</ControlLabel>
-            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
               <button
                 type="button"
-                onClick={() => setMarketMode("synthetic")}
+                onClick={() => setMarketMode("historical")}
+                title="Fetch real adjusted-close prices from Tiingo for a selected date range."
                 style={{
                   flex: 1, padding: "6px 8px", borderRadius: 4, fontSize: 11, fontFamily: FONT.mono,
-                  border: `1px solid ${marketMode === "synthetic" ? t.accent : t.border}`,
-                  background: marketMode === "synthetic" ? t.accentDim : t.surface,
-                  color: marketMode === "synthetic" ? t.accent : t.textMuted, cursor: "pointer",
+                  border: `1px solid ${marketMode === "historical" ? t.accent : t.border}`,
+                  background: marketMode === "historical" ? t.accentDim : t.surface,
+                  color: marketMode === "historical" ? t.accent : t.textMuted, cursor: "pointer",
                 }}
               >
-                Simulated
+                Historical
               </button>
               <button
                 type="button"
                 onClick={() => setMarketMode("live")}
+                title="Fetch real prices ending today — the window slides forward each session."
                 style={{
                   flex: 1, padding: "6px 8px", borderRadius: 4, fontSize: 11, fontFamily: FONT.mono,
                   border: `1px solid ${marketMode === "live" ? t.accent : t.border}`,
@@ -1842,9 +2001,27 @@ export default function QuantumPortfolioDashboard() {
                   color: marketMode === "live" ? t.accent : t.textMuted, cursor: "pointer",
                 }}
               >
-                Live tickers (historical)
+                Live (today)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarketMode("synthetic")}
+                title="Generates correlated synthetic paths from a multivariate-normal model. Use for offline demo only — not real price data."
+                style={{
+                  flex: 1, padding: "6px 8px", borderRadius: 4, fontSize: 11, fontFamily: FONT.mono,
+                  border: `1px solid ${t.border}`,
+                  background: marketMode === "synthetic" ? t.surfaceLight : t.surface,
+                  color: marketMode === "synthetic" ? t.textMuted : t.textDim, cursor: "pointer",
+                }}
+              >
+                Synthetic (demo)
               </button>
             </div>
+            {marketMode === "synthetic" && (
+              <div style={{ fontSize: 9, color: t.accentWarm, fontFamily: FONT.sans, lineHeight: 1.4, marginBottom: 10, padding: "4px 8px", background: t.surfaceLight, borderRadius: 4, border: `1px solid ${t.border}` }}>
+                Synthetic mode generates correlated random paths — not real price data. Switch to Historical or Live for real Tiingo data.
+              </div>
+            )}
             <ControlLabel>Universe tickers</ControlLabel>
             <TickerSearch value={selectedTickers} onChange={setSelectedTickers} placeholder="Search tickers…" />
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8, marginBottom: 8 }}>
@@ -1868,7 +2045,7 @@ export default function QuantumPortfolioDashboard() {
               </div>
             )}
 
-            {marketMode === "live" && (
+            {(marketMode === "historical" || marketMode === "live") && (
               <div style={{ marginBottom: 4 }}>
                 <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
                   <input
@@ -1884,24 +2061,34 @@ export default function QuantumPortfolioDashboard() {
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    disabled={marketMode === "live"}
+                    title={marketMode === "live" ? "End date is always today in Live mode." : undefined}
                     style={{
                       flex: 1, padding: "4px 6px", borderRadius: 4, border: `1px solid ${t.border}`,
-                      background: t.surface, color: t.text, fontSize: 10, fontFamily: FONT.mono,
+                      background: marketMode === "live" ? t.surfaceLight : t.surface,
+                      color: marketMode === "live" ? t.textDim : t.text, fontSize: 10, fontFamily: FONT.mono,
+                      opacity: marketMode === "live" ? 0.6 : 1,
                     }}
                   />
                 </div>
+                {marketMode === "live" && (
+                  <div style={{ fontSize: 9, color: t.textMuted, fontFamily: FONT.sans, lineHeight: 1.4, marginBottom: 6 }}>
+                    Live mode: end date is always today ({endDate}). Data refreshes each session.
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => void loadLiveMarketData()}
-                  disabled={liveLoading}
+                  disabled={liveLoading || selectedTickers.length === 0}
                   style={{
                     width: "100%", padding: "8px 0", borderRadius: 4, border: `1px solid ${t.accent}`,
-                    background: liveLoading ? t.surfaceLight : "transparent",
-                    color: t.accent, fontSize: 11, fontWeight: 600, fontFamily: FONT.mono,
-                    cursor: liveLoading ? "wait" : "pointer",
+                    background: (liveLoading || selectedTickers.length === 0) ? t.surfaceLight : "transparent",
+                    color: (liveLoading || selectedTickers.length === 0) ? t.textDim : t.accent,
+                    fontSize: 11, fontWeight: 600, fontFamily: FONT.mono,
+                    cursor: (liveLoading || selectedTickers.length === 0) ? "not-allowed" : "pointer",
                   }}
                 >
-                  {liveLoading ? "Loading…" : "Load market data"}
+                  {liveLoading ? "Loading…" : selectedTickers.length === 0 ? "Select tickers first" : "Load market data"}
                 </button>
                 {liveMarketError && (
                   <div style={{ marginTop: 6, fontSize: 10, color: t.red, fontFamily: FONT.mono }}>
@@ -1910,7 +2097,7 @@ export default function QuantumPortfolioDashboard() {
                 )}
                 {isLiveLoaded && (
                   <div style={{ marginTop: 6, fontSize: 10, color: t.green, fontFamily: FONT.mono }}>
-                    {data.assets.length} assets loaded — ready for Backend API below
+                    ✓ {data.assets.length} assets loaded — ready for Backend API below
                   </div>
                 )}
                 {isLiveLoaded && returnsSource === "mvn_synthetic" && (
@@ -1942,7 +2129,10 @@ export default function QuantumPortfolioDashboard() {
                 : "Shapes synthetic correlation and drift before optimization."
             }
           >
-            <div style={{ opacity: isLiveLoaded ? 0.45 : 1, pointerEvents: isLiveLoaded ? "none" : "auto" }}>
+            <div style={{ fontSize: 9, color: t.textDim, fontFamily: FONT.sans, marginBottom: 6, lineHeight: 1.4 }}>
+              Adjusts optimizer risk aversion (λ) and weight cap. Applied on both synthetic and real data.
+            </div>
+            <div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                 {REGIMES.map((r) => (
                   <button
@@ -1968,6 +2158,39 @@ export default function QuantumPortfolioDashboard() {
                     <div style={{ fontSize: 9, color: t.textMuted, lineHeight: 1.35, fontFamily: FONT.sans }}>{r.hint}</div>
                   </button>
                 ))}
+              </div>
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={handleAutoDetectRegime}
+                  disabled={regimeAutoLoading}
+                  style={{
+                    padding: "6px 10px",
+                    background: "transparent",
+                    border: `1px dashed ${t.accent}`,
+                    borderRadius: 6,
+                    color: t.accent,
+                    cursor: regimeAutoLoading ? "wait" : "pointer",
+                    fontFamily: FONT.mono,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    opacity: regimeAutoLoading ? 0.5 : 1,
+                  }}
+                  title="Fetches GET /api/market/regime against SPY (or selected tickers), maps the detector output to the lab regime, and applies it."
+                >
+                  {regimeAutoLoading ? "Detecting…" : "Auto-detect from market"}
+                </button>
+                {regimeAutoInfo && (
+                  <div style={{ fontSize: 9, color: t.textMuted, fontFamily: FONT.mono, lineHeight: 1.4 }}>
+                    Last detect at {regimeAutoInfo.ts}: <strong style={{ color: t.accent }}>{regimeAutoInfo.labRegime}</strong>
+                    {" "}(detector: {regimeAutoInfo.detector}, vol={Number.isFinite(regimeAutoInfo.vol) ? (regimeAutoInfo.vol * 100).toFixed(1) + "%" : "—"}, ret={Number.isFinite(regimeAutoInfo.ret) ? (regimeAutoInfo.ret * 100).toFixed(1) + "%" : "—"})
+                  </div>
+                )}
+                {regimeAutoError && (
+                  <div style={{ fontSize: 9, color: t.red || "#f87171", fontFamily: FONT.mono, lineHeight: 1.4 }}>
+                    Auto-detect failed: {regimeAutoError}
+                  </div>
+                )}
               </div>
             </div>
           </SidebarSection>
@@ -2143,20 +2366,20 @@ export default function QuantumPortfolioDashboard() {
             subtitle="POST /api/portfolio/optimize — weights, risk, and metadata from your FastAPI server."
           >
             <p style={{ fontSize: 10, color: t.textDim, marginBottom: 10, lineHeight: 1.45, fontFamily: FONT.sans }}>
-              {marketMode === "live" && !isLiveLoaded
-                ? "Load live market data in Data universe before running — the optimizer needs a return history."
+              {(marketMode === "historical" || marketMode === "live") && !isLiveLoaded
+                ? "Load market data in Data universe before running — the optimizer needs a return history."
                 : marketMode === "synthetic"
-                  ? "Uses synthetic lab data and regime above (unless you switch to live)."
-                  : "Uses loaded live returns and your selected method / K settings."}
+                  ? "Uses synthetic demo data and regime above. Switch to Historical or Live for real prices."
+                  : `Uses real ${marketMode === "live" ? "live (today)" : "historical"} Tiingo data and your selected method / K settings.`}
             </p>
             <button
               type="button"
               onClick={handleRunOptimize}
-              disabled={optimizeLoading || (marketMode === "live" && !isLiveLoaded)}
+              disabled={optimizeLoading || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded)}
               style={{
-                width: "100%", padding: "10px 0", background: optimizeLoading || (marketMode === "live" && !isLiveLoaded) ? t.surfaceLight : t.accent,
-                border: "none", borderRadius: 4, color: optimizeLoading || (marketMode === "live" && !isLiveLoaded) ? t.textMuted : t.bg,
-                fontSize: 12, fontWeight: 600, cursor: optimizeLoading || (marketMode === "live" && !isLiveLoaded) ? "default" : "pointer",
+                width: "100%", padding: "10px 0", background: optimizeLoading || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded) ? t.surfaceLight : t.accent,
+                border: "none", borderRadius: 4, color: optimizeLoading || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded) ? t.textMuted : t.bg,
+                fontSize: 12, fontWeight: 600, cursor: optimizeLoading || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded) ? "default" : "pointer",
                 fontFamily: FONT.mono, transition: "all 150ms", display: "flex", alignItems: "center",
                 justifyContent: "center", gap: 6,
               }}
@@ -2166,7 +2389,7 @@ export default function QuantumPortfolioDashboard() {
             <button
               type="button"
               onClick={handleSaveRun}
-              disabled={runSaving || !data?.assets?.length || (marketMode === "live" && !isLiveLoaded)}
+              disabled={runSaving || !data?.assets?.length || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded)}
               style={{
                 width: "100%", padding: "8px 0", marginTop: 6,
                 background: "transparent",
@@ -2190,7 +2413,7 @@ export default function QuantumPortfolioDashboard() {
                   <button
                     type="button"
                     onClick={() => handleSaveIbmVqeRun("simulator")}
-                    disabled={runSaving || (marketMode === "live" && !isLiveLoaded)}
+                    disabled={runSaving || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded)}
                     style={{
                       flex: 1,
                       padding: "6px 0",
@@ -2209,7 +2432,7 @@ export default function QuantumPortfolioDashboard() {
                   <button
                     type="button"
                     onClick={() => handleSaveIbmVqeRun("hardware")}
-                    disabled={runSaving || (marketMode === "live" && !isLiveLoaded)}
+                    disabled={runSaving || ((marketMode === "historical" || marketMode === "live") && !isLiveLoaded)}
                     style={{
                       flex: 1,
                       padding: "6px 0",
@@ -2228,9 +2451,9 @@ export default function QuantumPortfolioDashboard() {
                 </div>
               </div>
             )}
-            {marketMode === "live" && !isLiveLoaded && (
+            {(marketMode === "historical" || marketMode === "live") && !isLiveLoaded && (
               <div style={{ marginTop: 8, fontSize: 10, color: t.accentWarm, fontFamily: FONT.mono }}>
-                Disabled until live data is loaded.
+                Disabled until market data is loaded.
               </div>
             )}
             {isApiMode && (
@@ -2325,8 +2548,8 @@ export default function QuantumPortfolioDashboard() {
 
           <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <DataSourceBadge source={isLiveLoaded ? "api" : "sim"} />
-            {marketMode === "live" && !isLiveLoaded && (
-              <span style={{ fontSize: 11, color: t.accentWarm, fontFamily: FONT.mono }}>Apply universe to load live prices into the lab.</span>
+            {(marketMode === "historical" || marketMode === "live") && !isLiveLoaded && (
+              <span style={{ fontSize: 11, color: t.accentWarm, fontFamily: FONT.mono }}>Select tickers and click "Load market data" to fetch real prices.</span>
             )}
           </div>
 
@@ -2467,19 +2690,40 @@ export default function QuantumPortfolioDashboard() {
 
               {/* ── 3. Provenance ── */}
               <Panel span id="portfolio-provenance">
-                <SectionHeader subtitle="What produced these weights">Optimizer provenance</SectionHeader>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginTop: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+                  <SectionHeader subtitle="What produced these weights">Optimizer provenance</SectionHeader>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", padding: "3px 10px", borderRadius: 12,
+                    fontSize: 10, fontFamily: FONT.mono, fontWeight: 700, letterSpacing: "0.04em",
+                    background: isApiMode ? t.accentDim : t.surfaceLight,
+                    border: `1px solid ${isApiMode ? t.accent : t.border}`,
+                    color: isApiMode ? t.accent : t.textMuted,
+                    flexShrink: 0,
+                  }}>
+                    {isApiMode ? "Full API Run" : "Quick Sim (client-side)"}
+                  </span>
+                </div>
+                {!isApiMode && (
+                  <div style={{ fontSize: 10, color: t.accentWarm, fontFamily: FONT.sans, marginBottom: 10, padding: "4px 8px", background: t.surfaceLight, borderRadius: 4, border: `1px solid ${t.border}` }}>
+                    Showing client-side Quick Sim result. Click &ldquo;Run Backend API&rdquo; for the full optimizer with regime adjustments.
+                  </div>
+                )}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
                   {[
                     { label: "Objective", val: activeLabel },
-                    { label: "Data source", val: marketMode === "live" && isLiveLoaded ? "Live market" : `Synthetic · ${regimeLabel}` },
+                    { label: "Regime", val: regimeLabel, highlight: regime !== "normal" },
+                    { label: "Data source", val: isLiveLoaded ? (marketMode === "live" ? "Tiingo Live (today)" : "Tiingo Historical") : `Synthetic demo` },
                     { label: "Weight bounds", val: `${(weightMin * 100).toFixed(1)}% – ${(weightMax * 100).toFixed(1)}%` },
                     { label: "Cardinality", val: cardinality ? String(cardinality) : "Uncapped" },
                     { label: "Seed", val: String(dataSeed) },
                     { label: "Universe", val: `${data?.assets?.length ?? nAssets} names` },
+                    ...(isApiMode && apiResult?.metadata?.lambda_risk_applied != null
+                      ? [{ label: "λ applied", val: String(apiResult.metadata.lambda_risk_applied) }]
+                      : []),
                   ].map((c) => (
-                    <div key={c.label} style={{ padding: "6px 8px", background: t.surfaceLight, borderRadius: 4, border: `1px solid ${t.border}` }}>
+                    <div key={c.label} style={{ padding: "6px 8px", background: t.surfaceLight, borderRadius: 4, border: `1px solid ${c.highlight ? t.accentWarm : t.border}` }}>
                       <div style={{ fontSize: 8, color: t.textMuted, fontFamily: FONT.mono, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 3 }}>{c.label}</div>
-                      <div style={{ fontSize: 11, color: t.text, fontFamily: FONT.mono, fontWeight: 600 }}>{c.val}</div>
+                      <div style={{ fontSize: 11, color: c.highlight ? t.accentWarm : t.text, fontFamily: FONT.mono, fontWeight: 600 }}>{c.val}</div>
                     </div>
                   ))}
                 </div>
@@ -2600,6 +2844,7 @@ export default function QuantumPortfolioDashboard() {
                   universeBrowse={universeBrowse}
                   setUniverseBrowse={setUniverseBrowse}
                   setSelectedTickers={setSelectedTickers}
+                  currentTickers={selectedTickers}
                 />
               </Panel>
             </div>
@@ -3071,7 +3316,7 @@ export default function QuantumPortfolioDashboard() {
                       {isApiMode ? "Source: backend risk_metrics" : "Source: lab Monte Carlo (see methodology)"}
                     </span>
                     <span style={{ fontSize: 10, fontFamily: FONT.mono, padding: "4px 10px", borderRadius: 4, background: t.surfaceLight, color: t.textDim, border: `1px solid ${t.border}` }}>
-                      {marketMode === "live" && isLiveLoaded ? "Universe: live market window" : "Universe: simulated lab data"}
+                      {isLiveLoaded ? `Universe: ${marketMode === "live" ? "live (today)" : "historical"} Tiingo data` : "Universe: synthetic demo data"}
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: 24, justifyContent: "center", padding: "12px 0 8px", flexWrap: "wrap" }}>
@@ -3416,6 +3661,7 @@ export default function QuantumPortfolioDashboard() {
                   kScreen: kScreen,
                   kSelect: kSelect,
                   targetReturn,
+                  regime,
                 }}
                 labContext={{
                   marketMode,
@@ -3437,7 +3683,37 @@ export default function QuantumPortfolioDashboard() {
                 </summary>
                 <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
               <div style={{ gridColumn: "1 / -1", padding: "10px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.surface, fontSize: 10, color: t.textMuted, lineHeight: 1.45 }}>
-                <strong style={{ color: t.text }}>Heatmap focus:</strong> sweeps objective × <code style={{ fontFamily: FONT.mono }}>w_max</code> on the same Σ — pair with Risk and Performance for full context.
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <span>
+                    <strong style={{ color: t.text }}>Heatmap focus:</strong> sweeps objective × <code style={{ fontFamily: FONT.mono }}>w_max</code> on the same Σ — pair with Risk and Performance for full context. Sweep uses sidebar objective + neighbors and regime <strong style={{ color: t.text }}>{sweepConfig.regime}</strong>.
+                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {sweepIsStale && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, fontFamily: FONT.mono,
+                        padding: "3px 8px", borderRadius: 999,
+                        background: t.accentDim, color: t.accentWarm || t.accent,
+                        border: `1px solid ${t.accentWarm || t.accent}`,
+                      }}>
+                        [Config changed — sweep outdated]
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={runSensitivitySweep}
+                      style={{
+                        fontSize: 10, fontWeight: 600, fontFamily: FONT.sans,
+                        padding: "5px 12px", borderRadius: 6,
+                        border: `1px solid ${t.accent}`,
+                        background: sweepIsStale ? t.accent : "transparent",
+                        color: sweepIsStale ? t.surface : t.accent,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Run sensitivity sweep
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <Panel span>

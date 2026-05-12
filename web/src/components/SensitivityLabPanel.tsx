@@ -33,6 +33,7 @@ export type SidebarSnapshot = {
   kSelect: number | null;
   /** Annualized return target for `target_return` objective (API field target_return). */
   targetReturn: number;
+  regime: string;
 };
 
 export type ObjectiveOption = {
@@ -42,7 +43,7 @@ export type ObjectiveOption = {
 };
 
 export type LabContext = {
-  marketMode: "live" | "synthetic";
+  marketMode: "historical" | "live" | "synthetic";
   isLiveLoaded: boolean;
   ibmConnected: boolean;
   nAssets: number;
@@ -71,6 +72,7 @@ type BenchSpec = {
   lambdaRisk: number;
   gamma: number;
   targetReturn: number;
+  regime: string;
 };
 
 type MetricsLite = {
@@ -108,6 +110,7 @@ function emptySpec(sidebar: SidebarSnapshot): BenchSpec {
       typeof sidebar.targetReturn === "number" && Number.isFinite(sidebar.targetReturn)
         ? sidebar.targetReturn
         : 0.1,
+    regime: sidebar.regime ?? "normal",
   };
 }
 
@@ -138,6 +141,7 @@ function specDiff(before: BenchSpec, after: BenchSpec): string[] {
     "lambdaRisk",
     "gamma",
     "targetReturn",
+    "regime",
   ];
   for (const k of keys) {
     if (before[k] !== after[k]) {
@@ -217,9 +221,6 @@ export default function SensitivityLabPanel({
     const nn = data.assets.length;
     setWeights(Array.from({ length: nn }, () => 1 / nn));
     setWeightsDirty(false);
-    // `universeKey` already changes whenever `data.assets` changes (ticker list);
-    // adding `data.assets.length` would re-fire on no-op renders. Intentional.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [universeKey]);
 
   const metrics = useMemo(() => {
@@ -353,6 +354,7 @@ export default function SensitivityLabPanel({
         n_restarts: spec.nRestarts,
         lambda_risk: spec.lambdaRisk,
         gamma: spec.gamma,
+        regime: spec.regime ?? "normal",
       };
       if (spec.K.trim()) payload.K = parseInt(spec.K, 10);
       if (spec.kScreen.trim()) payload.K_screen = parseInt(spec.kScreen, 10);
@@ -703,10 +705,10 @@ export default function SensitivityLabPanel({
               lineHeight: 1.5,
             }}
           >
-            <li style={{ color: ctx.marketMode === "live" && !ctx.isLiveLoaded ? t.accentWarm : t.textMuted }}>
-              {ctx.marketMode === "live" && !ctx.isLiveLoaded
-                ? "Live mode: load market data in the sidebar so Σ matches your intent."
-                : "Data: synthetic or live loaded ✓"}
+            <li style={{ color: (ctx.marketMode === "historical" || ctx.marketMode === "live") && !ctx.isLiveLoaded ? t.accentWarm : t.textMuted }}>
+              {(ctx.marketMode === "historical" || ctx.marketMode === "live") && !ctx.isLiveLoaded
+                ? "Historical/Live mode: load market data in the sidebar so Σ matches your intent."
+                : ctx.marketMode === "synthetic" ? "Synthetic mode (demo) — using simulated data." : "Market data loaded ✓"}
             </li>
             <li style={{ color: spec.objective === "vqe" && ctx.nAssets > MAX_IBM_VQE_ASSETS ? t.accentWarm : t.textMuted }}>
               {spec.objective === "vqe" && ctx.nAssets > MAX_IBM_VQE_ASSETS

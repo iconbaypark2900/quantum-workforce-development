@@ -1,0 +1,57 @@
+qoblib:
+  version: "1.0"
+  data_dir: "data/qoblib/raw"
+  results_dir: "results/qoblib"
+
+  solvers:
+    classical:
+      enabled: true
+      timeout_seconds: 60
+      backend: "cvxpy"
+
+    heuristic:
+      enabled: true
+      timeout_seconds: 120
+      method: "differential_evolution"
+      max_iterations: 1000
+
+    qaoa_sim:
+      enabled: true
+      timeout_seconds: 300
+      n_layers: 3
+      n_restarts: 5
+      backend: "statevector_simulator"
+      max_qubits: 20
+
+    ibm_quantum:
+      enabled: false
+      strict: true
+      max_qubits: 127
+      shots: 1024
+      resilience_level: 1
+      timeout_seconds: 600
+
+    auto:
+      enabled: true
+      max_qubits_for_qaoa: 20
+      prefer_classical_below_assets: 15
+
+    hybrid_router:
+      enabled: true
+      routing_rules:
+        - condition: "n_qubits <= 20"
+          solver: "qaoa_sim"
+        - condition: "n_qubits <= 127 and ibm_available"
+          solver: "ibm_quantum"
+        - default: "classical"
+
+  qubo_encoding:
+    penalty_lambda: 10.0
+    bits_per_asset: 3
+    binary_encoding: "one_hot"
+
+  artifact:
+    write_json: true
+    write_csv: true
+    write_markdown_report: true
+    csv_path: "results/qoblib/results.csv"
