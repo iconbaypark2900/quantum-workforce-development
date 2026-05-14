@@ -134,6 +134,12 @@ export async function optimizePortfolio(params: Record<string, unknown>) {
   return res.data;
 }
 
+/** Server-side 4×5 sensitivity grid (same optimizer path as optimize). */
+export async function postSensitivitySweep(params: Record<string, unknown>) {
+  const res = await api.post("/api/portfolio/sensitivity-sweep", params);
+  return res.data;
+}
+
 export async function runBacktest(params: Record<string, unknown>) {
   const res = await api.post("/api/portfolio/backtest", params);
   return res.data;

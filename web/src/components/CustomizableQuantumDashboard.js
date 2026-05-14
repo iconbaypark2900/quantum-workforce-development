@@ -20,7 +20,7 @@ import {
   calculateRiskContributions, simulatePerAssetEquity,
 } from "@/lib/simulationEngine";
 import {
-  optimizePortfolio, setIbmQuantumToken, clearIbmQuantumToken, getIbmQuantumStatus,
+  optimizePortfolio, postSensitivitySweep, setIbmQuantumToken, clearIbmQuantumToken, getIbmQuantumStatus,
   createLabRun, fetchRegime, ApiError,
 } from "@/lib/api";
 import { usePortfolioLabMarketData } from "@/hooks/usePortfolioLabMarketData";
@@ -389,13 +389,35 @@ function MetricCard({
 }
 
 
-function SectionHeader({ children, subtitle, explainer }) {
+/** Portfolio book: compact stale indicator when API snapshot diverges from sidebar/universe. */
+function BookStaleChip({ t }) {
+  return (
+    <span
+      title="Config or universe changed since the last successful Run Backend API — run again to refresh."
+      style={{
+        fontSize: 9,
+        fontWeight: 700,
+        fontFamily: FONT.mono,
+        padding: "3px 8px",
+        borderRadius: 999,
+        background: t.accentDim,
+        color: t.accentWarm || t.accent,
+        border: `1px solid ${t.accentWarm || t.accent}`,
+      }}
+    >
+      [Stale]
+    </span>
+  );
+}
+
+function SectionHeader({ children, subtitle, explainer, trailing }) {
   const t = useTheme();
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div style={{ width: 3, height: 16, background: t.accent, borderRadius: 2 }} />
         <span style={{ fontSize: 13, fontWeight: 600, color: t.textMuted, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: FONT.sans }}>{children}</span>
+        {trailing}
       </div>
       {subtitle && <p style={{ fontSize: 11, color: t.textDim, margin: "4px 0 0 11px", lineHeight: 1.45 }}>{subtitle}</p>}
       {explainer && (
@@ -1209,6 +1231,8 @@ export default function QuantumPortfolioDashboard() {
 
   // Backend optimization state
   const [apiResult, setApiResult] = useState(null);
+  /** Fingerprint of sidebar + universe at last successful API optimize (for [Stale] chips; do not clear on param drift). */
+  const [lastApiOptimizeSnapshot, setLastApiOptimizeSnapshot] = useState(null);
   const [optimizeLoading, setOptimizeLoading] = useState(false);
   const [optimizeError, setOptimizeError] = useState(null);
 
@@ -1305,11 +1329,10 @@ export default function QuantumPortfolioDashboard() {
       .catch(() => {});
   }, []);
 
-  // Clear API result when optimization-relevant params change
+  // Clear optimize error when knobs change; keep apiResult visible — stale chips reflect drift vs lastApiOptimizeSnapshot.
   useEffect(() => {
-    setApiResult(null);
     setOptimizeError(null);
-  }, [nAssets, regime, objective, cardinality, kScreen, kSelect, weightMin, weightMax, dataSeed]);
+  }, [nAssets, regime, objective, cardinality, kScreen, kSelect, weightMin, weightMax, dataSeed, selectedTickers]);
 
   const handleIbmConnect = useCallback(async () => {
     if (!ibmToken.trim()) return;
@@ -1414,6 +1437,20 @@ export default function QuantumPortfolioDashboard() {
         benchmarks: resp.benchmarks || null,
       };
       setApiResult(apiSnapshot);
+      setLastApiOptimizeSnapshot({
+        tickersKey: [...selectedTickers].sort().join("|"),
+        assetNamesKey: data.assets.map((a) => a.name).join("|"),
+        regime,
+        objective,
+        weightMin,
+        weightMax,
+        cardinality: cardinality ?? null,
+        kScreen: kScreen ?? null,
+        kSelect: kSelect ?? null,
+        dataSeed,
+        targetReturn,
+        notional,
+      });
 
       const usedTickers = data.assets.map(a => a.name);
       setLastOptimize(
@@ -1432,7 +1469,22 @@ export default function QuantumPortfolioDashboard() {
     } finally {
       setOptimizeLoading(false);
     }
-  }, [data, objective, cardinality, kScreen, kSelect, weightMin, weightMax, dataSeed, targetReturn, setLastOptimize, setUniverse]);
+  }, [
+    data,
+    objective,
+    cardinality,
+    kScreen,
+    kSelect,
+    weightMin,
+    weightMax,
+    dataSeed,
+    targetReturn,
+    regime,
+    notional,
+    selectedTickers,
+    setLastOptimize,
+    setUniverse,
+  ]);
 
   const buildLabRunPayload = useCallback(() => {
     if (!data?.assets?.length) return null;
@@ -1512,6 +1564,46 @@ export default function QuantumPortfolioDashboard() {
 
   const result = apiResult || simResult;
   const isApiMode = !!apiResult;
+
+  /** Snapshot vs live: universe fingerprint from tickers + loaded asset order; holdings/diagnostics also stale on solver-knob drift. */
+  const portfolioBookStaleFlags = useMemo(() => {
+    if (!apiResult || !lastApiOptimizeSnapshot) {
+      return { staleUniverse: false, staleHoldings: false, staleDiagnostics: false };
+    }
+    const snap = lastApiOptimizeSnapshot;
+    const tickersKey = [...selectedTickers].sort().join("|");
+    const assetNamesKey = (data?.assets ?? []).map((a) => a.name).join("|");
+    const staleUniverse = snap.tickersKey !== tickersKey || snap.assetNamesKey !== assetNamesKey;
+    const paramsDrift =
+      snap.regime !== regime ||
+      snap.objective !== objective ||
+      snap.weightMin !== weightMin ||
+      snap.weightMax !== weightMax ||
+      snap.cardinality !== (cardinality ?? null) ||
+      snap.kScreen !== (kScreen ?? null) ||
+      snap.kSelect !== (kSelect ?? null) ||
+      snap.dataSeed !== dataSeed ||
+      snap.notional !== notional ||
+      (objective === "target_return" && snap.targetReturn !== targetReturn);
+    const staleHoldings = staleUniverse || paramsDrift;
+    const staleDiagnostics = staleHoldings;
+    return { staleUniverse, staleHoldings, staleDiagnostics };
+  }, [
+    apiResult,
+    lastApiOptimizeSnapshot,
+    selectedTickers,
+    data?.assets,
+    regime,
+    objective,
+    weightMin,
+    weightMax,
+    cardinality,
+    kScreen,
+    kSelect,
+    dataSeed,
+    notional,
+    targetReturn,
+  ]);
 
   const dataUniverseSnap = useMemo(() => {
     const assets = data?.assets ?? [];
@@ -1777,6 +1869,9 @@ export default function QuantumPortfolioDashboard() {
     weightMax: weightMax,
     regime: regime,
   });
+  const [sensitivitySweepGrid, setSensitivitySweepGrid] = useState(null);
+  const [sensitivitySweepLoading, setSensitivitySweepLoading] = useState(false);
+  const [sensitivitySweepError, setSensitivitySweepError] = useState(null);
 
   /** Has the sidebar drifted from the last sweep snapshot? */
   const sweepIsStale = useMemo(() => (
@@ -1786,11 +1881,8 @@ export default function QuantumPortfolioDashboard() {
     sweepConfig.regime !== regime
   ), [sweepConfig, objective, weightMin, weightMax, regime]);
 
-  /** Pick the heatmap objectives dynamically: current sidebar objective + its
-   *  neighbors (prefer same group). Always returns 4 distinct objectives so the
-   *  table layout is stable.
-   */
-  const heatmapObjectives = useMemo(() => {
+  /** Heatmap rows sent to POST /api/portfolio/sensitivity-sweep — follows live sidebar objective (neighbor grouping). */
+  const heatmapObjectivesLive = useMemo(() => {
     if (!objectiveOptions?.length) {
       return [
         { value: "markowitz", label: "Markowitz" },
@@ -1799,44 +1891,89 @@ export default function QuantumPortfolioDashboard() {
         { value: "min_variance", label: "Min Var" },
       ];
     }
-    const current = objectiveOptions.find((o) => o.value === sweepConfig.objective) || objectiveOptions[0];
+    const current = objectiveOptions.find((o) => o.value === objective) || objectiveOptions[0];
     const sameGroup = objectiveOptions.filter((o) => o.group === current.group && o.value !== current.value);
     const others = objectiveOptions.filter((o) => o.group !== current.group);
     const picks = [current, ...sameGroup, ...others].slice(0, 4);
     return picks.map((o) => ({ value: o.value, label: o.label }));
-  }, [objectiveOptions, sweepConfig.objective]);
+  }, [objectiveOptions, objective]);
 
   const sensitivityHeatmap = useMemo(() => {
-    if (!data?.assets?.length) return { rows: [], wSteps: [], maxS: 1, minS: 0 };
-    const wSteps = [0.10, 0.15, 0.20, 0.25, 0.30];
-    const cache = new Map();
-    const sharpeAt = (objectiveVal, w) => {
-      const k = `${objectiveVal}|${w}`;
-      if (cache.has(k)) return cache.get(k);
-      const sh = runOptimisation(data, { objective: objectiveVal, wMin: sweepConfig.weightMin, wMax: w }).sharpe;
-      cache.set(k, sh);
-      return sh;
-    };
+    if (!sensitivitySweepGrid?.sharpe?.length) {
+      return { rows: [], wSteps: [], maxS: 1, minS: 0 };
+    }
+    const wSteps = sensitivitySweepGrid.w_steps;
+    const sharpeM = sensitivitySweepGrid.sharpe;
+    const objs = sensitivitySweepGrid.objectives || [];
     let maxS = -Infinity;
     let minS = Infinity;
-    const rows = heatmapObjectives.map((o) => {
-      const cells = wSteps.map((w) => {
-        const sh = sharpeAt(o.value, w);
-        maxS = Math.max(maxS, sh);
-        minS = Math.min(minS, sh);
+    const rows = objs.map((o, ri) => {
+      const meta = objectiveOptions.find((x) => x.value === o.id);
+      const cells = wSteps.map((w, wi) => {
+        const sh = Number(sharpeM[ri][wi]);
+        if (Number.isFinite(sh)) {
+          maxS = Math.max(maxS, sh);
+          minS = Math.min(minS, sh);
+        }
         return { w, sharpe: sh };
       });
-      return { ...o, cells };
+      return { value: o.id, label: meta?.label || o.id, cells };
     });
     if (!Number.isFinite(maxS)) maxS = 1;
     if (!Number.isFinite(minS)) minS = 0;
     if (minS === maxS) minS -= 0.01;
     return { rows, wSteps, maxS, minS };
-  }, [data, sweepConfig, heatmapObjectives]);
+  }, [sensitivitySweepGrid, objectiveOptions]);
 
-  const runSensitivitySweep = useCallback(() => {
-    setSweepConfig({ objective, weightMin, weightMax, regime });
-  }, [objective, weightMin, weightMax, regime]);
+  const runSensitivitySweep = useCallback(async () => {
+    if (!data?.assets?.length) return;
+    setSensitivitySweepLoading(true);
+    setSensitivitySweepError(null);
+    try {
+      const n = data.assets.length;
+      const returns = data.assets.map((a) => a.annReturn);
+      const covariance = Array.from({ length: n }, (_, i) =>
+        Array.from({ length: n }, (_, j) =>
+          data.assets[i].annVol * data.assets[j].annVol * data.corr[i][j],
+        ),
+      );
+      const payload = {
+        returns,
+        covariance,
+        asset_names: data.assets.map((a) => a.name),
+        sectors: data.assets.map((a) => a.sector),
+        objectives: heatmapObjectivesLive.map((o) => o.value),
+        weight_min: weightMin,
+        weight_max_steps: [0.1, 0.15, 0.2, 0.25, 0.3],
+        regime,
+        seed: dataSeed,
+      };
+      if (cardinality != null) payload.K = cardinality;
+      if (kScreen != null) payload.K_screen = kScreen;
+      if (kSelect != null) payload.K_select = kSelect;
+      if (objective === "target_return") payload.target_return = targetReturn;
+
+      const res = await postSensitivitySweep(payload);
+      setSensitivitySweepGrid(res);
+      setSweepConfig({ objective, weightMin, weightMax, regime });
+    } catch (err) {
+      setSensitivitySweepError(err?.message || String(err));
+    } finally {
+      setSensitivitySweepLoading(false);
+    }
+  }, [
+    data,
+    heatmapObjectivesLive,
+    weightMin,
+    objective,
+    cardinality,
+    kScreen,
+    kSelect,
+    regime,
+    dataSeed,
+    targetReturn,
+    weightMax,
+  ]);
 
   const handleAutoDetectRegime = useCallback(async () => {
     setRegimeAutoLoading(true);
@@ -2860,7 +2997,7 @@ export default function QuantumPortfolioDashboard() {
               <span style={{ fontSize: 11, color: t.textMuted, fontFamily: FONT.mono }}>
                 Results from API server
               </span>
-              <button onClick={() => setApiResult(null)} style={{
+              <button onClick={() => { setApiResult(null); setLastApiOptimizeSnapshot(null); }} style={{
                 fontSize: 10, fontFamily: FONT.mono, color: t.textDim, background: "transparent",
                 border: `1px solid ${t.border}`, borderRadius: 3, padding: "1px 6px", cursor: "pointer",
               }}>
@@ -3039,7 +3176,12 @@ export default function QuantumPortfolioDashboard() {
               {/* ── 4. Positions (table is single source of truth; bar chart inside vs-Cap column) ── */}
               <Panel id="portfolio-holdings">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                  <SectionHeader subtitle={`${holdings.length} positions · click column to sort · dollar values at ${fmtDollar(notional)} notional`}>Dollar holdings</SectionHeader>
+                  <SectionHeader
+                    subtitle={`${holdings.length} positions · click column to sort · dollar values at ${fmtDollar(notional)} notional`}
+                    trailing={isApiMode && portfolioBookStaleFlags.staleHoldings ? <BookStaleChip t={t} /> : null}
+                  >
+                    Dollar holdings
+                  </SectionHeader>
                   <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={exportJSON} title="Copy portfolio JSON to clipboard"
                       style={{ fontSize: 10, fontFamily: FONT.mono, padding: "4px 10px", borderRadius: 4, border: `1px solid ${t.border}`, background: t.surfaceLight, color: t.textMuted, cursor: "pointer" }}>
@@ -3097,7 +3239,12 @@ export default function QuantumPortfolioDashboard() {
 
               {/* ── 5. Diagnostics (concentration + constraints — one band) ── */}
               <Panel span id="portfolio-diagnostics">
-                <SectionHeader subtitle="Concentration metrics and constraint utilization">Diagnostics</SectionHeader>
+                <SectionHeader
+                  subtitle="Concentration metrics and constraint utilization"
+                  trailing={isApiMode && portfolioBookStaleFlags.staleDiagnostics ? <BookStaleChip t={t} /> : null}
+                >
+                  Diagnostics
+                </SectionHeader>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginTop: 8 }}>
                   {[
                     { label: "HHI", val: concentrationMetrics.hhi.toFixed(4), sub: "0 = diversified", binding: false },
@@ -3134,8 +3281,11 @@ export default function QuantumPortfolioDashboard() {
               </Panel>
 
               <Panel id="portfolio-universe">
-                <div style={{ fontSize: 11, color: t.textMuted, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: FONT.mono, marginBottom: 12, fontWeight: 700 }}>
-                  Universe &amp; market data
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: t.textMuted, letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: FONT.mono, fontWeight: 700 }}>
+                    Universe &amp; market data
+                  </div>
+                  {isApiMode && portfolioBookStaleFlags.staleUniverse ? <BookStaleChip t={t} /> : null}
                 </div>
                 <UniverseLabFacts snap={dataUniverseSnap} />
                 <UniverseMainSection
@@ -3984,9 +4134,15 @@ export default function QuantumPortfolioDashboard() {
               <div style={{ gridColumn: "1 / -1", padding: "10px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: t.surface, fontSize: 10, color: t.textMuted, lineHeight: 1.45 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                   <span>
-                    <strong style={{ color: t.text }}>Heatmap focus:</strong> sweeps objective × <code style={{ fontFamily: FONT.mono }}>w_max</code> on the same Σ — pair with Risk and Performance for full context. Sweep uses sidebar objective + neighbors and regime <strong style={{ color: t.text }}>{sweepConfig.regime}</strong>.
+                    <strong style={{ color: t.text }}>Heatmap focus:</strong>{" "}
+                    Server-side <code style={{ fontFamily: FONT.mono }}>POST /api/portfolio/sensitivity-sweep</code> runs 20 Python optimizations (same path as <strong style={{ color: t.text }}>Run Backend API</strong>) — objective × <code style={{ fontFamily: FONT.mono }}>w_max</code> on the current Σ. Uses sidebar objective neighbors + regime <strong style={{ color: t.text }}>{sweepConfig.regime}</strong> from the last successful sweep (click refresh when stale).
                   </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    {sensitivitySweepError && (
+                      <span style={{ fontSize: 10, color: t.red ?? "#f87171", fontFamily: FONT.mono, maxWidth: 420 }}>
+                        {sensitivitySweepError}
+                      </span>
+                    )}
                     {sweepIsStale && (
                       <span style={{
                         fontSize: 9, fontWeight: 700, fontFamily: FONT.mono,
@@ -3999,6 +4155,7 @@ export default function QuantumPortfolioDashboard() {
                     )}
                     <button
                       type="button"
+                      disabled={sensitivitySweepLoading || !data?.assets?.length}
                       onClick={runSensitivitySweep}
                       style={{
                         fontSize: 10, fontWeight: 600, fontFamily: FONT.sans,
@@ -4006,10 +4163,11 @@ export default function QuantumPortfolioDashboard() {
                         border: `1px solid ${t.accent}`,
                         background: sweepIsStale ? t.accent : "transparent",
                         color: sweepIsStale ? t.surface : t.accent,
-                        cursor: "pointer",
+                        cursor: sensitivitySweepLoading || !data?.assets?.length ? "not-allowed" : "pointer",
+                        opacity: sensitivitySweepLoading ? 0.7 : 1,
                       }}
                     >
-                      Run sensitivity sweep
+                      {sensitivitySweepLoading ? "Running sweep…" : "Run sensitivity sweep"}
                     </button>
                   </div>
                 </div>
@@ -4017,11 +4175,17 @@ export default function QuantumPortfolioDashboard() {
 
               <Panel span>
                 <SectionHeader
-                  subtitle={`Grid: objective × max weight ${sensitivityHeatmap.wSteps.map((w) => `${(w * 100).toFixed(0)}%`).join(" · ")} · w_min = ${(weightMin * 100).toFixed(1)}% (sidebar)`}
+                  subtitle={
+                    sensitivityHeatmap.wSteps.length
+                      ? `Grid: objective × regime-adjusted max weight ${sensitivityHeatmap.wSteps.map((w) => `${(w * 100).toFixed(0)}%`).join(" · ")} · w_min = ${(weightMin * 100).toFixed(1)}% (sidebar)`
+                      : "Load the grid with Run sensitivity sweep — matches Python optimize route (not legacy client JS)."
+                  }
                   explainer={(
                     <>
                       <span style={{ color: t.text, fontWeight: 600 }}>What is swept. </span>
-                      Each cell is one <code style={{ fontFamily: FONT.mono }}>runOptimisation</code> on <strong style={{ color: t.text }}>lab data</strong> with that <strong style={{ color: t.text }}>objective</strong> and <strong style={{ color: t.text }}>w_max</strong>; <code style={{ fontFamily: FONT.mono }}>w_min</code> comes from the sidebar. <strong style={{ color: t.text }}>Current objective:</strong> <strong style={{ color: t.accent }}>{activeLabel}</strong> · <strong style={{ color: t.text }}>max weight:</strong> <strong style={{ color: t.accent }}>{(weightMax * 100).toFixed(0)}%</strong>. The highlighted column is closest to your sidebar cap. Δ vs current Sharpe appears on the row that matches your objective (vs last optimization).
+                      Each cell is one <code style={{ fontFamily: FONT.mono }}>run_optimization</code> call on the Flask API batch with that <strong style={{ color: t.text }}>objective</strong> and column <strong style={{ color: t.text }}>w_max</strong> (regime-adjusted like single-shot optimize); <code style={{ fontFamily: FONT.mono }}>w_min</code> comes from the sidebar. <strong style={{ color: t.text }}>Current objective:</strong>{" "}
+                      <strong style={{ color: t.accent }}>{activeLabel}</strong> · <strong style={{ color: t.text }}>max weight:</strong>{" "}
+                      <strong style={{ color: t.accent }}>{(weightMax * 100).toFixed(0)}%</strong>. Highlighted column is closest to your sidebar cap. Δ vs current Sharpe uses the live book (Quick Sim or last API run).
                     </>
                   )}
                 >
@@ -4068,7 +4232,16 @@ export default function QuantumPortfolioDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sensitivityHeatmap.rows.map((row) => {
+                      {sensitivityHeatmap.rows.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={Math.max(2, 1 + sensitivityHeatmap.wSteps.length)}
+                            style={{ padding: 24, textAlign: "center", color: t.textDim }}
+                          >
+                            No sweep loaded yet — click <strong style={{ color: t.text }}>Run sensitivity sweep</strong>.
+                          </td>
+                        </tr>
+                      ) : sensitivityHeatmap.rows.map((row) => {
                         const rowIsCurrentObjective = row.value === objective;
                         return (
                           <tr key={row.value}>
@@ -4080,10 +4253,13 @@ export default function QuantumPortfolioDashboard() {
                             </td>
                             {row.cells.map((cell, wi) => {
                               const { minS, maxS } = sensitivityHeatmap;
-                              const u = maxS > minS ? (cell.sharpe - minS) / (maxS - minS) : 0.5;
+                              const u =
+                                Number.isFinite(cell.sharpe) && maxS > minS
+                                  ? (cell.sharpe - minS) / (maxS - minS)
+                                  : 0.5;
                               const bg = `rgb(${Math.round(30 + u * 140)},${Math.round(50 + u * 100)},${Math.round(90 + u * 80)})`;
                               const isCol = wi === sensitivityHeatmapColIdx;
-                              const delta = rowIsCurrentObjective ? cell.sharpe - result.sharpe : null;
+                              const delta = rowIsCurrentObjective && Number.isFinite(cell.sharpe) ? cell.sharpe - result.sharpe : null;
                               return (
                                 <td
                                   key={cell.w}
@@ -4096,8 +4272,8 @@ export default function QuantumPortfolioDashboard() {
                                     outlineOffset: -1,
                                   }}
                                 >
-                                  <div>{cell.sharpe.toFixed(3)}</div>
-                                  {rowIsCurrentObjective && delta != null && (
+                                  <div>{Number.isFinite(cell.sharpe) ? cell.sharpe.toFixed(3) : "—"}</div>
+                                  {rowIsCurrentObjective && delta != null && Number.isFinite(delta) && (
                                     <div style={{ fontSize: 9, color: delta >= 0 ? t.green : t.red, marginTop: 2 }}>
                                       Δ {delta >= 0 ? "+" : ""}{delta.toFixed(3)} vs run
                                     </div>

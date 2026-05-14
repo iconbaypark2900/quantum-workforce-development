@@ -239,12 +239,12 @@ Detailed log of the May 2026 overhaul: **[docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md]
 - [x] WeasyPrint PDF report export with hardened pre-flight errors
 
 ### Phase 3 — Active Gaps (priority-ordered, from QOBLIB overhaul §"Known Gaps")
-- [ ] **High:** Real IBM Quantum job submission for QOBLIB (currently raises `NotImplementedError`)
+- [x] **High:** QOBLIB IBM Quantum adapter v1 (`run_qoblib_benchmark_sampler`, tenant-threaded `qoblib/run`; metadata + caps — see **`docs/QOBLIB_IBM_RUNTIME.md`**); full constrained QAOA/QUBO deferred
 - [ ] **High:** Tiingo error surfacing + synthetic-mode fallback banner
 - [ ] **Medium:** `GET /api/reports/capabilities` PDF pre-flight endpoint (avoid post-click failure)
-- [ ] **Medium:** `POST /api/portfolio/sensitivity-sweep` (server-side parallel; client sweep degrades past ~50 tickers)
-- [ ] **Medium:** QAOA-sim fixture regression test + `/api/simulations/qoblib/validate` endpoint
-- [ ] **Low:** Per-card stale badges (instead of clearing `apiResult` on config change)
+- [x] **Medium:** `POST /api/portfolio/sensitivity-sweep` (parallel Python grid; Portfolio Lab heatmap uses server path)
+- [x] **Medium:** QAOA-sim fixture regression + `GET /api/simulations/qoblib/validate` (`persist=False` harness; `qaoa_sim` → `qaoa_sim_solver` with heuristic fallback)
+- [x] **Low:** Per-card `[Stale]` badges on Portfolio book (API snapshot retained; no blanket `apiResult` clear on param change)
 - [ ] **Low:** localStorage size guard on saved universes
 - [ ] **Low:** Distinguish auth-error vs. data-error in regime auto-detect
 - [x] **Low:** QOBLIB run list from `results/qoblib/results.csv` (newest first); full run JSON under `results/qoblib/runs/{run_id}.json`; `GET /api/simulations/qoblib/runs` and `GET .../runs/<run_id>` require `X-API-Key` (`@require_api_key`); Next tab uses `flaskProxyFetchHeaders()` for fetch/export

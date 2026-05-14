@@ -58,11 +58,11 @@ REGIME_OPTIMIZER_PARAMS = {
 ### Part 4 — Sensitivity Page
 
 - **Weight card** uses `props.tickers` from the parent dashboard (live universe, not hardcoded).
-- **Dynamic heatmap objectives** — `heatmapObjectives` useMemo derives 4 objectives from `objectiveOptions` based on the current sidebar objective and group neighbors; falls back to legacy list when `objectiveOptions` is empty.
-- **Sweep config snapshot** — `sweepConfig` state records `{objective, weightMin, weightMax, regime}` at the last manual sweep. `sweepIsStale` useMemo detects drift.
-- **Stale chip** — `[Config changed — sweep outdated]` warning appears in the heatmap header when config drifts from last sweep.
-- **"Run sensitivity sweep" button** — explicit button triggers the sweep and updates `sweepConfig` snapshot.
-- `regime` passed into every sweep API call.
+- **Dynamic heatmap objectives** — neighbor grouping from the live sidebar objective (`heatmapObjectivesLive`).
+- **Sweep config snapshot** — `sweepConfig` state records `{objective, weightMin, weightMax, regime}` at the last successful server sweep. `sweepIsStale` detects drift.
+- **Stale chip** — `[Config changed — sweep outdated]` when sidebar diverges from `sweepConfig`.
+- **Server grid** — **`POST /api/portfolio/sensitivity-sweep`** (`services/sensitivity_sweep.py`) runs 20 parallel **`run_optimization`** calls (same contract as **`POST /api/portfolio/optimize`**). The CRA dashboard loads the heatmap only after **Run sensitivity sweep** (avoids accidental client-side 20× JS solves). Advanced section documents legacy JS heatmaps separately.
+- `regime` passed into each sweep request (regime-adjusted column caps match optimize route).
 
 ---
 
@@ -81,6 +81,7 @@ Full Python module at `benchmarks/qoblib/`.
 | `benchmarks/qoblib/reporting.py` | Markdown report generation |
 | `benchmarks/qoblib/hybrid_router.py` | Routes instance to solver based on qubit count thresholds from config |
 | `benchmarks/qoblib/qaoa_sim_solver.py` | Thin wrapper around `core/quantum_inspired/qaoa_optimizer.py` |
+| `benchmarks/qoblib/validation.py` | Validate harness; gap metrics vs `benchmark_optimal`; `run_benchmark(..., persist=False)` |
 
 #### Solvers
 
@@ -88,9 +89,9 @@ Full Python module at `benchmarks/qoblib/`.
 |---|---|---|
 | `classical` | cvxpy (CLARABEL) with scipy fallback | Always available |
 | `heuristic` | scipy `differential_evolution` | Always available |
-| `qaoa_sim` | `qaoa_sim_solver.py` | Simulated QAOA; qubit/depth tracked |
-| `hybrid_router` | Routes by qubit count | ≤20 qubits → qaoa_sim; ≤127 + IBM → ibm_quantum; else classical |
-| `ibm_quantum` | IBM hardware (strict mode) | Returns HTTP 400 if no token configured — no silent fallback |
+| `qaoa_sim` | `qaoa_sim_solver.solve` | Simulated QAOA (`benchmarks/qoblib/qaoa_sim_solver.py`); on failure falls back to heuristic with `actual_backend` reflecting fallback |
+| `hybrid_router` | Routes by qubit count | ≤15 assets → classical; ≤20 qubits → `qaoa_sim`; IBM Runtime sampler when token + routing policy (`ibm_quantum` backend label); else classical |
+| `ibm_quantum` | IBM Runtime (strict) | Tenant token required — **`run_qoblib_benchmark_sampler`** (see **[QOBLIB_IBM_RUNTIME.md](QOBLIB_IBM_RUNTIME.md)**). HTTP 400 if not configured |
 | `auto` | hybrid_router with classical fallback | Labels `actual_backend` in result |
 
 #### IBM Strict Mode
@@ -123,6 +124,7 @@ Each run writes:
 | POST | `/api/simulations/qoblib/run` | Execute a benchmark run |
 | GET | `/api/simulations/qoblib/runs` | List run history (from `results/qoblib/results.csv`; API key required) |
 | GET | `/api/simulations/qoblib/runs/{run_id}` | Get single run result JSON artifact (API key required) |
+| GET | `/api/simulations/qoblib/validate` | Fixture harness: runs classical / heuristic / `qaoa_sim` / `hybrid_router` / `auto` with **`persist=False`** (no CSV/JSON artifact spam); returns gap-to-optimal vs `benchmark_optimal` when present. Query `instance_id` (default `po_a010_t10_s01`). `@require_api_key`, tighter rate limit. |
 
 ---
 
@@ -166,17 +168,12 @@ The UI always shows both **Requested Backend** and **Actual Backend** as separat
 
 ## Known Gaps and What Needs More Finesse
 
-### 1. IBM Quantum Real Execution Path
-**Severity: High — feature is currently a stub**
+### 1. IBM Quantum Real Execution Path (QOBLIB)
+**Severity: Medium — initial Runtime adapter shipped (May 2026); full QAOA/QUBO encoding deferred**
 
-`benchmarks/qoblib/runner.py` raises `NotImplementedError` for `ibm_quantum` execution:
+Strict **`ibm_quantum`** and the IBM branch of **`hybrid_router`** call **`services.ibm_quantum.run_qoblib_benchmark_sampler`**: IBM Runtime **`SamplerV2`** with **`EfficientSU2`**, fixed zero parameters, counts mapped to weights (`_marginal_weights_from_counts`), then classical mean–variance objective — same *family* as **`hardware_smoke_test`** but with explicit benchmark \(r,\Sigma\). **`SolverResult.metadata.ibm_runtime`** records **`job_id`**, **`backend`**, **`shots`**, **`mode`**, **`elapsed_ms`**, **`simulator`**, **`counts`**, profile tag.
 
-```python
-# TODO: wire to ibm_quantum_service job submission
-raise NotImplementedError("IBM Quantum hardware submission not yet wired")
-```
-
-The existing `ibm_quantum_service.py` has job submission logic, but the QOBLIB runner doesn't call it. Real wiring requires: QUBO → Ising Hamiltonian conversion, circuit construction at the configured depth, result polling, and extracting the bitstring solution back to portfolio weights. This is a meaningful quantum computing integration task, not just plumbing.
+**Operational:** default **`QOBLIB_IBM_MODE=simulator`**; use **`hardware`** only with queue/credit awareness. **Asset cap:** 15 for this adapter. **Design note:** **[QOBLIB_IBM_RUNTIME.md](QOBLIB_IBM_RUNTIME.md)** documents assumptions vs a future constrained QUBO/QAOA solve.
 
 ---
 
@@ -200,27 +197,29 @@ The fix is a lightweight `GET /api/reports/capabilities` endpoint that returns `
 ---
 
 ### 4. Sensitivity Sweep Performance at Scale
-**Severity: Medium — degrades badly beyond ~50 tickers**
+**Severity: Medium — addressed for primary heatmap (May 2026)**
 
-The current sweep runs 20 client-side optimizations (4 objectives × 5 weight-max values) using the JavaScript optimizer. With 250 tickers and a real covariance matrix, each run involves matrix operations that can take 2–5 seconds. The full sweep becomes a 40–100 second blocking operation.
+**`POST /api/portfolio/sensitivity-sweep`** runs the **4×5** grid server-side via **`ThreadPoolExecutor`** over **`run_optimization`** (`services/sensitivity_sweep.py`), matching **`POST /api/portfolio/optimize`**. **`CustomizableQuantumDashboard`** loads the Parameter heatmap after **Run sensitivity sweep** with **`postSensitivitySweep`**. Rate limit **`3 per minute`**; **`@require_api_key`**.
 
-The right fix is a `POST /api/portfolio/sensitivity-sweep` endpoint that accepts the full config and runs all 20 optimizations server-side in parallel (Python's `concurrent.futures.ThreadPoolExecutor` over scipy solvers). The frontend then makes one request and streams or polls progress.
+The nested **Advanced → legacy sensitivity heatmaps** section may still reference client-side **`runOptimisation`** for older previews — main operator path is API-aligned.
 
 ---
 
 ### 5. QAOA Simulator Quality and Qubit Tracking
-**Severity: Medium — output is plausible but not validated**
+**Severity: Medium — addressed (May 2026)**
 
-`qaoa_sim_solver.py` attempts to import `core.quantum_inspired.qaoa_optimizer`. If that import fails, it falls back to random restarts. The qubit count and circuit depth reported in the result come from the QUBO encoding dimensions, but the actual simulation fidelity hasn't been validated against known-optimal solutions. The fixture `po_a010_t10_s01` has a `benchmark_optimal` value that should be used as a regression test.
+`benchmarks/qoblib/runner.py` **`run_benchmark(..., persist=True)`** skips `_write_artifacts` when `persist=False` (validation harness / CI). For **`requested_backend == "qaoa_sim"`**, the runner calls **`qaoa_sim_solver.solve`** and falls back to the heuristic DE solver on exception (`actual_backend` records the fallback).
 
-Suggested addition: a `/api/simulations/qoblib/validate` endpoint that runs all solvers against the fixture and reports gap-to-optimal for each, serving as a continuous integration check.
+**`GET /api/simulations/qoblib/validate`** — `@require_api_key`, **`5 per minute`** limiter; optional query **`instance_id`** (default `po_a010_t10_s01`); **`404`** if the fixture is missing. Builds gap metrics vs **`benchmark_optimal.objective_value`** when feasible.
+
+Regression coverage: **`tests/test_qoblib_validation.py`** (HTTP contract + non-persist loop + classical gap tolerance vs fixture).
 
 ---
 
 ### 6. Portfolio Book Per-Card Stale Badges
-**Severity: Low-Medium — missing from original spec**
+**Severity: Low-Medium — addressed (May 2026)**
 
-The plan called for per-card "stale — re-run optimizer" badges on Dollar Holdings, Diagnostics, and Universe cards when `selectedTickers` or `regime` changed after the last API run. The current implementation clears `apiResult` on config change (which causes the cards to disappear), but this is more disruptive than a stale badge. A better pattern: keep `apiResult` visible but overlay a `[Stale]` chip on each affected card.
+Portfolio Lab keeps **`apiResult`** visible after sidebar/universe changes; **`lastApiOptimizeSnapshot`** captures tickers, ordered **`asset_names`** from the optimize payload, regime/objective/bounds/K/seed (and target-return when used). **`[Stale]`** chips appear on **Dollar holdings**, **Diagnostics**, and **Universe & market data** when the snapshot diverges (universe fingerprint vs optimizer knobs).
 
 ---
 
@@ -256,12 +255,12 @@ The auto-detect button calls `fetchRegime()` which uses the axios client. The ax
 
 | # | Item | Severity | Effort |
 |---|---|---|---|
-| 1 | IBM Quantum real job submission wiring | High | Large |
+| 1 | IBM QOBLIB Runtime sampler (strict + hybrid IBM branch) | Medium | Done (v1); full QAOA/QUBO TBD |
 | 2 | Tiingo error surfacing + fallback banner | High | Small |
 | 3 | PDF pre-flight `/capabilities` endpoint | Medium | Small |
-| 4 | Server-side sensitivity sweep endpoint | Medium | Medium |
-| 5 | QAOA fixture regression test + validate endpoint | Medium | Medium |
-| 6 | Per-card stale badges (not clear/hide) | Low-Medium | Small |
+| 4 | Server-side sensitivity sweep endpoint | Medium | Done |
+| 5 | QAOA fixture regression test + validate endpoint | Medium | Done |
+| 6 | Per-card stale badges (not clear/hide) | Low-Medium | Done |
 | 7 | localStorage size guard for saved universes | Low | Tiny |
 | 8 | Regime auto-detect auth error distinction | Low | Small |
 | 9 | QOBLIB run history from CSV | Low | Small |

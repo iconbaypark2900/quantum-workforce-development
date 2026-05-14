@@ -9,7 +9,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -137,8 +137,15 @@ def run_benchmark(
     instance: PortfolioBenchmarkInstance,
     requested_backend: str = "classical",
     ibm_token: Optional[str] = None,
+    *,
+    persist: bool = True,
+    tenant_id: Optional[str] = None,
 ) -> SolverResult:
-    """Run a benchmark and return a SolverResult. Writes JSON + CSV artifacts."""
+    """Run a benchmark and return a SolverResult.
+
+    When ``persist`` is True (default), writes JSON + CSV + Markdown artifacts.
+    Validation harnesses pass ``persist=False`` to avoid spamming ``results/qoblib/``.
+    """
     _ensure_dirs()
     run_id = str(uuid.uuid4())
     ts = datetime.now(timezone.utc).isoformat()
@@ -150,6 +157,7 @@ def run_benchmark(
     feasible = False
     error: Optional[str] = None
     qubo: Optional[QuboEncodingResult] = None
+    metadata_extra: dict[str, Any] = {}
 
     try:
         if requested_backend == "classical":
@@ -161,9 +169,20 @@ def run_benchmark(
             actual_backend = "heuristic"
             feasible = True
 
-        elif requested_backend in ("qaoa_sim", "auto"):
+        elif requested_backend == "qaoa_sim":
             qubo = _qubo_encoding_info(instance)
-            # Use heuristic as qaoa_sim stand-in (real QAOA wired in hybrid_router)
+            try:
+                from .qaoa_sim_solver import solve as qaoa_solve
+                weights, obj_val = qaoa_solve(instance)
+                actual_backend = "qaoa_sim"
+            except Exception:
+                weights, obj_val = _heuristic_solve(instance)
+                actual_backend = "qaoa_sim_fallback_heuristic"
+            feasible = True
+
+        elif requested_backend == "auto":
+            # Legacy behavior: fast heuristic stand-in (distinct from strict ``qaoa_sim`` path).
+            qubo = _qubo_encoding_info(instance)
             weights, obj_val = _heuristic_solve(instance)
             actual_backend = "qaoa_sim"
             feasible = True
@@ -174,13 +193,51 @@ def run_benchmark(
                     "IBM Quantum backend requested but no token is configured. "
                     "Add IBMQ_TOKEN to environment or settings. No classical fallback in strict mode."
                 )
-            # Placeholder — real IBM path goes via hybrid_router
-            raise NotImplementedError("IBM Quantum backend not yet integrated; configure token and try again.")
+            from services import ibm_quantum as _ibm
+
+            tid = ((tenant_id or _ibm.resolve_tenant()) or "").strip() or "default"
+            mode = os.environ.get("QOBLIB_IBM_MODE", "simulator").lower()
+            if mode not in ("hardware", "simulator"):
+                mode = "simulator"
+            out = _ibm.run_qoblib_benchmark_sampler(
+                tid,
+                expected_returns=instance.expected_returns,
+                covariance=instance.covariance_matrix,
+                weight_min=float(instance.constraints.get("weight_min", 0.0)),
+                weight_max=float(instance.constraints.get("weight_max", 1.0)),
+                mode=mode,
+            )
+            if not out.get("ok"):
+                raise RuntimeError(out.get("error", "IBM QOBLIB execution failed"))
+            weights = list(out["weights"])
+            obj_val = float(out["mean_variance_objective"])
+            actual_backend = "ibm_quantum"
+            feasible = True
+            metadata_extra["ibm_runtime"] = {
+                k: out[k]
+                for k in (
+                    "job_id",
+                    "backend",
+                    "shots",
+                    "mode",
+                    "elapsed_ms",
+                    "simulator",
+                    "qoblib_ibm_profile",
+                    "ibm_saved_instance_crn_suffix",
+                    "counts",
+                )
+                if k in out
+            }
 
         elif requested_backend == "hybrid_router":
             from .hybrid_router import route_and_solve
-            weights, obj_val, actual_backend, qubo = route_and_solve(instance, ibm_token=ibm_token)
+
+            weights, obj_val, actual_backend, qubo, router_md = route_and_solve(
+                instance, ibm_token=ibm_token, tenant_id=tenant_id
+            )
             feasible = True
+            if router_md:
+                metadata_extra.update(router_md)
 
         else:
             raise ValueError(f"Unknown backend: {requested_backend!r}")
@@ -213,12 +270,17 @@ def run_benchmark(
         n_active_assets=n_active,
         wall_time_seconds=round(wall_time, 4),
         timestamp=ts,
-        metadata={"instance_n_assets": instance.n_assets, "instance_n_periods": instance.n_periods},
+        metadata={
+            "instance_n_assets": instance.n_assets,
+            "instance_n_periods": instance.n_periods,
+            **metadata_extra,
+        },
         qubo_encoding=qubo,
         error=error,
     )
 
-    _write_artifacts(result)
+    if persist:
+        _write_artifacts(result)
     return result
 
 

@@ -31,10 +31,10 @@ type Row =
     };
 
 function mergeRows(
-  server: LabRun[],
+  server: LabRun[] | undefined,
   browser: StoredOptimizationRun[]
 ): Row[] {
-  const a: Row[] = server.map((r) => {
+  const a: Row[] = (Array.isArray(server) ? server : []).map((r) => {
     const spec = r.spec;
     const res = r.result;
     let sharpe: number | null = null;
@@ -96,7 +96,8 @@ export default function ReportsRunHistory() {
     setLoading(true);
     (async () => {
       try {
-        const { runs } = await listLabRuns(50);
+        const body = await listLabRuns(50);
+        const runs = Array.isArray(body.runs) ? body.runs : [];
         if (!cancelled) {
           setServerRuns(runs);
           setServerErr(null);
@@ -157,8 +158,8 @@ export default function ReportsRunHistory() {
             refresh();
             void (async () => {
               try {
-                const { runs } = await listLabRuns(50);
-                setServerRuns(runs);
+                const body = await listLabRuns(50);
+                setServerRuns(Array.isArray(body.runs) ? body.runs : []);
                 setServerErr(null);
               } catch (e) {
                 setServerErr(

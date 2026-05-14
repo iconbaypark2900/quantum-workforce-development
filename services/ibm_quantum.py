@@ -763,6 +763,158 @@ def hardware_smoke_test(
         }
 
 
+# QOBLIB IBM: wider asset cap than generic smoke; still bounded for Runtime cost control.
+_QOBLIB_IBM_MAX_ASSETS = 15
+_QOBLIB_IBM_DEFAULT_SHOTS = 256
+
+
+def run_qoblib_benchmark_sampler(
+    tenant_id: str,
+    *,
+    expected_returns: list[float],
+    covariance: list[list[float]],
+    weight_min: float,
+    weight_max: float,
+    mode: str = "simulator",
+    shots: Optional[int] = None,
+) -> dict[str, Any]:
+    """
+    IBM Runtime single-shot sampler for small QOBLIB instances.
+
+    Mirrors the EfficientSU2 + ``SamplerV2`` pipeline used by ``hardware_smoke_test`` but
+    takes explicit benchmark ``μ`` and ``Σ`` (no Tiingo fetch). Maps measurement counts to
+    weights via ``_marginal_weights_from_counts`` and evaluates the classical mean–variance
+    objective r'w − ½ w'Σ w.
+
+    **Encoding:** this is a marginal bitstring→weights heuristic aligned with the Lab IBM
+    smoke path — not a full QAOA minimization of the constrained Markowitz QUBO; see
+    ``docs/QOBLIB_IBM_RUNTIME.md`` for assumptions and metadata fields.
+    """
+    import numpy as np
+
+    bm = (mode or "simulator").lower()
+    if bm not in ("hardware", "simulator"):
+        return {
+            "ok": False,
+            "error": "mode must be 'hardware' or 'simulator'",
+            "tenant_id": tenant_id,
+        }
+
+    mu = np.asarray(expected_returns, dtype=float).ravel()
+    sigma = np.asarray(covariance, dtype=float)
+    n = int(mu.shape[0])
+    if n < 2:
+        return {"ok": False, "error": "Need at least 2 assets", "tenant_id": tenant_id}
+    if n > _QOBLIB_IBM_MAX_ASSETS:
+        return {
+            "ok": False,
+            "error": (
+                f"IBM QOBLIB path supports at most {_QOBLIB_IBM_MAX_ASSETS} assets; got {n}"
+            ),
+            "tenant_id": tenant_id,
+        }
+    if sigma.shape != (n, n):
+        return {
+            "ok": False,
+            "error": "covariance must be square and match returns length",
+            "tenant_id": tenant_id,
+        }
+
+    sh = int(shots) if shots is not None else _QOBLIB_IBM_DEFAULT_SHOTS
+    sh = max(32, min(sh, 2048))
+
+    try:
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit_ibm_runtime import SamplerV2 as Sampler
+        from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+    except ImportError:
+        return {
+            "ok": False,
+            "error": "qiskit-ibm-runtime is not installed",
+            "tenant_id": tenant_id,
+        }
+
+    ensure_loaded(tenant_id)
+    with _lock:
+        t = _services.get(tenant_id)
+        svc = t[0] if t else None
+
+    if svc is None:
+        return {
+            "ok": False,
+            "error": "IBM Quantum not configured for this tenant",
+            "tenant_id": tenant_id,
+        }
+
+    w_lo = float(weight_min)
+    w_hi = float(weight_max)
+    t0 = time.perf_counter()
+    try:
+        backend = _pick_smoke_backend(svc, mode=bm, min_qubits=n)
+        ansatz = EfficientSU2(n, reps=_SMOKE_N_LAYERS, entanglement="linear")
+        ansatz.measure_all()
+        pm = generate_preset_pass_manager(backend=backend, optimization_level=1)
+        isa_circuit = pm.run(ansatz)
+        theta0 = np.zeros(len(isa_circuit.parameters))
+        bound = isa_circuit.assign_parameters(theta0)
+        sampler = Sampler(mode=backend)
+        result = sampler.run([bound], shots=sh).result()
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        counts: dict[str, int] = {}
+        try:
+            raw = result[0].data.meas.get_counts()
+            if isinstance(raw, dict):
+                counts = {str(k): int(v) for k, v in raw.items()}
+        except Exception:
+            counts = {}
+
+        w = _marginal_weights_from_counts(counts, n, w_lo, w_hi)
+        w = np.asarray(w, dtype=float)
+        port_ret = float(np.dot(w, mu))
+        var = float(w @ sigma @ w)
+        port_vol = float(np.sqrt(max(var, 0.0)))
+        mv_obj = float(mu @ w - 0.5 * w @ sigma @ w)
+        sharpe = (port_ret / port_vol) if port_vol > 1e-10 else None
+
+        job_id: Optional[str] = None
+        try:
+            pub_result = result[0]
+            if hasattr(pub_result, "job_id"):
+                jid = pub_result.job_id
+                job_id = str(jid) if jid is not None else None
+        except Exception:
+            pass
+
+        cfg = backend.configuration()
+        return {
+            "ok": True,
+            "tenant_id": tenant_id,
+            "weights": [float(x) for x in w.ravel()],
+            "mean_variance_objective": mv_obj,
+            "expected_return": port_ret,
+            "portfolio_volatility": port_vol,
+            "sharpe_ratio": sharpe,
+            "counts": counts,
+            "job_id": job_id,
+            "backend": backend.name,
+            "simulator": bool(cfg.simulator),
+            "mode": bm,
+            "shots": sh,
+            "elapsed_ms": elapsed_ms,
+            "qoblib_ibm_profile": "efficient_su2_zero_params_marginal_weights",
+            "ibm_saved_instance_crn_suffix": _saved_instance_suffix_for_tenant(tenant_id),
+        }
+    except Exception as exc:
+        logger.warning("IBM QOBLIB sampler failed tenant=%s: %s", tenant_id, exc)
+        return {
+            "ok": False,
+            "configured": True,
+            "error": str(exc),
+            "tenant_id": tenant_id,
+            "elapsed_ms": round((time.perf_counter() - t0) * 1000, 2),
+        }
+
+
 def list_runtime_workloads(
     tenant_id: str,
     *,

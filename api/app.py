@@ -74,6 +74,7 @@ from services.market_data import validate_tickers
 # Import backtesting service
 from services.backtest import run_backtest as run_backtesting, walk_forward_backtest
 from services.data_provider import load_market_payload
+from services.sensitivity_sweep import run_sensitivity_sweep, SensitivitySweepError
 from services.risk_models import build_risk_metrics_bundle
 
 # ─── Logging (JSON for prod/aggregation, console for dev readability) ───
@@ -1405,6 +1406,26 @@ def optimize_portfolio():
         return error_response(str(e), code='BAD_REQUEST', status=400)
     except Exception as e:
         logger.error(f"optimize_portfolio error: {str(e)}", exc_info=True)
+        return error_response(f'Internal server error: {str(e)}', code='INTERNAL_ERROR', status=500)
+
+
+@app.route('/api/portfolio/sensitivity-sweep', methods=['POST'])
+@require_api_key
+@limiter.limit("3 per minute")
+def sensitivity_sweep():
+    """Parallel 4×5 objective × weight-cap Sharpe grid (same solver path as optimize)."""
+    try:
+        data = request.json
+        if not data:
+            return error_response('Request body is required', code='BAD_REQUEST', status=400)
+        out = run_sensitivity_sweep(data)
+        return jsonify(out)
+    except SensitivitySweepError as e:
+        return error_response(str(e), code='BAD_REQUEST', status=400)
+    except ValueError as e:
+        return error_response(str(e), code='BAD_REQUEST', status=400)
+    except Exception as e:
+        logger.error(f"sensitivity_sweep error: {str(e)}", exc_info=True)
         return error_response(f'Internal server error: {str(e)}', code='INTERNAL_ERROR', status=500)
 
 
@@ -3086,6 +3107,14 @@ def _get_qoblib():
     return load_instance, list_instances, run_benchmark
 
 
+def _get_qoblib_validate():
+    """Lazy import validation harness (Gap #5)."""
+    import sys
+    sys.path.insert(0, _REPO_ROOT)
+    from benchmarks.qoblib.validation import validate_instance_id
+    return validate_instance_id
+
+
 @app.route('/api/simulations/qoblib/instances', methods=['GET'])
 @limiter.limit("60 per minute")
 def qoblib_list_instances():
@@ -3139,7 +3168,7 @@ def qoblib_run():
                 code="IBM_NOT_CONFIGURED",
                 status=400,
             )
-        ibm_token = "configured"  # runner uses ibm_quantum_service directly for actual execution
+        ibm_token = "configured"  # tenant-scoped execution resolves inside run_benchmark via tenant_id
 
     try:
         load_instance, _, run_benchmark = _get_qoblib()
@@ -3150,13 +3179,44 @@ def qoblib_run():
         logger.exception("QOBLIB instance load failed")
         return error_response(str(exc), code="QOBLIB_ERROR", status=500)
 
+    tenant_effective = getattr(g, "tenant_id", None)
+    if tenant_effective in (None, "", "anonymous"):
+        tenant_effective = ibm_quantum_service.resolve_tenant()
+
     try:
-        result = run_benchmark(instance, requested_backend=backend, ibm_token=ibm_token)
+        result = run_benchmark(
+            instance,
+            requested_backend=backend,
+            ibm_token=ibm_token,
+            tenant_id=tenant_effective,
+        )
     except Exception as exc:
         logger.exception("QOBLIB run failed for instance=%s backend=%s", instance_id, backend)
         return error_response(str(exc), code="QOBLIB_RUN_ERROR", status=500)
 
     return jsonify(result.to_dict())
+
+
+@app.route('/api/simulations/qoblib/validate', methods=['GET'])
+@require_api_key
+@limiter.limit("5 per minute")
+def qoblib_validate():
+    """CI-style harness: run classical/heuristic/qaoa_sim/hybrid_router/auto (no IBM).
+
+    Query: instance_id (default po_a010_t10_s01). Does not write CSV/JSON artifacts.
+    """
+    instance_id = str(request.args.get("instance_id", "po_a010_t10_s01")).strip()
+    if not instance_id:
+        return error_response("instance_id is required", code="VALIDATION_ERROR", status=400)
+    try:
+        validate_instance_id = _get_qoblib_validate()
+        payload = validate_instance_id(instance_id, persist=False)
+        return jsonify(payload)
+    except FileNotFoundError:
+        return error_response(f"Instance '{instance_id}' not found.", code="NOT_FOUND", status=404)
+    except Exception as exc:
+        logger.exception("QOBLIB validate failed instance=%s", instance_id)
+        return error_response(str(exc), code="QOBLIB_VALIDATE_ERROR", status=500)
 
 
 @app.route('/api/simulations/qoblib/runs', methods=['GET'])
