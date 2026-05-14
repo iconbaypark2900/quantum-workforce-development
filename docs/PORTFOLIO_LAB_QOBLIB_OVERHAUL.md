@@ -121,8 +121,8 @@ Each run writes:
 | GET | `/api/simulations/qoblib/instances` | List available benchmark instances |
 | GET | `/api/simulations/qoblib/solvers` | List available solvers with availability flags |
 | POST | `/api/simulations/qoblib/run` | Execute a benchmark run |
-| GET | `/api/simulations/qoblib/runs` | List run history |
-| GET | `/api/simulations/qoblib/runs/{run_id}` | Get single run result |
+| GET | `/api/simulations/qoblib/runs` | List run history (from `results/qoblib/results.csv`; API key required) |
+| GET | `/api/simulations/qoblib/runs/{run_id}` | Get single run result JSON artifact (API key required) |
 
 ---
 
@@ -239,9 +239,9 @@ The auto-detect button calls `fetchRegime()` which uses the axios client. The ax
 ---
 
 ### 9. QOBLIB Run History Persistence
-**Severity: Low — works per-session but resets on server restart**
+**Severity: Low — closed (May 2026)**
 
-Run history is stored in an in-memory `_run_store` dict in `api/app.py`. Restarting the Flask server clears all history. For anything beyond development, this needs to persist to SQLite or the `results/qoblib/results.csv` file. The CSV is already written per run — `GET /api/simulations/qoblib/runs` should read from that file as its source of truth rather than in-memory state.
+`GET /api/simulations/qoblib/runs` reads `results/qoblib/results.csv` (newest first) via `_read_qoblib_runs_csv()`; `GET /api/simulations/qoblib/runs/<run_id>` serves `results/qoblib/runs/{run_id}.json`. Both routes use `@require_api_key`. The Simulations QOBLIB tab passes `flaskProxyFetchHeaders()` on fetch and JSON export.
 
 ---
 

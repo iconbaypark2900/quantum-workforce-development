@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { QoblibRunRow } from "@/types/qoblib";
+import { flaskProxyFetchHeaders } from "@/lib/api";
 
 interface Props {
   refreshKey?: number;
@@ -13,7 +14,7 @@ export default function QoblibResultsTable({ refreshKey }: Props) {
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/simulations/qoblib/runs")
+    fetch("/api/simulations/qoblib/runs", { headers: flaskProxyFetchHeaders() })
       .then((r) => r.json())
       .then((d) => setRuns(d.runs ?? []))
       .catch(() => {})
@@ -31,13 +32,27 @@ export default function QoblibResultsTable({ refreshKey }: Props) {
     <div className="overflow-x-auto">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-ql-on-surface-variant">{runs.length} run{runs.length !== 1 ? "s" : ""} (newest first)</span>
-        <a
-          href="/api/simulations/qoblib/runs"
+        <button
+          type="button"
           className="text-xs text-ql-primary underline"
-          download="qoblib_results.json"
+          onClick={() => {
+            void fetch("/api/simulations/qoblib/runs", { headers: flaskProxyFetchHeaders() })
+              .then((r) => r.blob())
+              .then((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "qoblib_results.json";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+              })
+              .catch(() => {});
+          }}
         >
           Export JSON
-        </a>
+        </button>
       </div>
       <table className="w-full text-xs font-mono">
         <thead>

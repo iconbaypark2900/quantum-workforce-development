@@ -11,6 +11,7 @@ from flask_limiter.util import get_remote_address
 from functools import wraps
 import numpy as np
 import pandas as pd
+import csv
 import json
 import os
 import re
@@ -28,6 +29,10 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 
 # Repo root (this file lives in api/; data/ and docs/ are at project root)
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# QOBLIB benchmark artifacts (written by benchmarks/qoblib/runner.py)
+_QOBLIB_RESULTS_CSV_PATH = os.path.join(_REPO_ROOT, "results", "qoblib", "results.csv")
+_QOBLIB_RUNS_DIR = os.path.join(_REPO_ROOT, "results", "qoblib", "runs")
 
 # Import portfolio optimization (unified service routes to methods)
 from core.portfolio_optimizer import (
@@ -3045,6 +3050,34 @@ def export_report_pdf(run_id):
 # QOBLIB Benchmark Endpoints
 # ---------------------------------------------------------------------------
 
+def _read_qoblib_runs_csv(*, csv_path: str | None = None) -> list[dict[str, str | None]]:
+    """Load QOBLIB run summary rows from ``results.csv`` (newest first).
+
+    Mirrors ``benchmarks/qoblib/runner._CSV_COLUMNS`` without importing the package.
+    Returns an empty list when the file is missing. Values are strings as in ``csv.DictReader``;
+    only ``nan``/``NaN`` tokens become ``None`` for JSON serialization.
+    """
+    path = _QOBLIB_RESULTS_CSV_PATH if csv_path is None else csv_path
+    if not os.path.isfile(path):
+        return []
+    rows: list[dict[str, str | None]] = []
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for raw in reader:
+            row: dict[str, str | None] = {}
+            for key, val in raw.items():
+                if key is None:
+                    continue
+                s = "" if val is None else str(val).strip()
+                if s.lower() == "nan":
+                    row[key] = None
+                else:
+                    row[key] = s
+            rows.append(row)
+    rows.reverse()
+    return rows
+
+
 def _get_qoblib():
     """Lazy import of qoblib module to avoid startup failures if deps missing."""
     import sys
@@ -3127,29 +3160,22 @@ def qoblib_run():
 
 
 @app.route('/api/simulations/qoblib/runs', methods=['GET'])
+@require_api_key
 @limiter.limit("60 per minute")
 def qoblib_list_runs():
     """List all past QOBLIB runs from results/qoblib/results.csv."""
-    import csv
-    csv_path = os.path.join(_REPO_ROOT, "results", "qoblib", "results.csv")
-    runs = []
-    if os.path.exists(csv_path):
-        with open(csv_path, newline="") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                runs.append(row)
-    runs.reverse()  # newest first
+    runs = _read_qoblib_runs_csv()
     return jsonify({"runs": runs, "count": len(runs)})
 
 
 @app.route('/api/simulations/qoblib/runs/<run_id>', methods=['GET'])
+@require_api_key
 @limiter.limit("60 per minute")
 def qoblib_get_run(run_id):
     """Retrieve a specific QOBLIB run result JSON artifact."""
-    import re as _re
-    if not _re.match(r'^[0-9a-f\-]{36}$', run_id):
+    if not re.match(r'^[0-9a-f\-]{36}$', run_id):
         return error_response("Invalid run_id format.", code="VALIDATION_ERROR", status=400)
-    json_path = os.path.join(_REPO_ROOT, "results", "qoblib", "runs", f"{run_id}.json")
+    json_path = os.path.join(_QOBLIB_RUNS_DIR, f"{run_id}.json")
     if not os.path.exists(json_path):
         return error_response(f"Run '{run_id}' not found.", code="NOT_FOUND", status=404)
     with open(json_path) as f:

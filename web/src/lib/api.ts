@@ -18,6 +18,13 @@ if (API_KEY) {
   defaultHeaders["X-API-Key"] = API_KEY;
 }
 
+/** Headers for same-origin ``fetch()`` calls that bypass axios (QOBLIB tab, etc.). */
+export function flaskProxyFetchHeaders(extra?: Record<string, string>): Record<string, string> {
+  const h: Record<string, string> = { ...extra };
+  if (API_KEY) h["X-API-Key"] = API_KEY;
+  return h;
+}
+
 type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
 
 const api = axios.create({

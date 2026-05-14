@@ -247,7 +247,7 @@ Detailed log of the May 2026 overhaul: **[docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md]
 - [ ] **Low:** Per-card stale badges (instead of clearing `apiResult` on config change)
 - [ ] **Low:** localStorage size guard on saved universes
 - [ ] **Low:** Distinguish auth-error vs. data-error in regime auto-detect
-- [ ] **Low:** QOBLIB run history sourced from `results/qoblib/results.csv` (currently in-memory)
+- [x] **Low:** QOBLIB run list from `results/qoblib/results.csv` (newest first); full run JSON under `results/qoblib/runs/{run_id}.json`; `GET /api/simulations/qoblib/runs` and `GET .../runs/<run_id>` require `X-API-Key` (`@require_api_key`); Next tab uses `flaskProxyFetchHeaders()` for fetch/export
 - [ ] **Low:** OS-aware `scripts/install_pdf_deps.sh` for WeasyPrint native libs
 
 ### Phase 4 — Research Modules (implemented; not yet wired into Lab/QOBLIB)
