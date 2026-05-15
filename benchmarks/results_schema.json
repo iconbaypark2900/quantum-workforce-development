@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QHP Benchmark Result Schema",
+  "description": "Schema for one JSONL line emitted by benchmarks/*.py. The first line of every file is a `_meta` header; subsequent lines are `BenchmarkCase` instances.",
+  "oneOf": [
+    {
+      "title": "Meta header",
+      "type": "object",
+      "required": ["_meta", "benchmark_name", "run_id", "started_at", "finished_at", "config", "summary"],
+      "properties": {
+        "_meta": {"const": true},
+        "benchmark_name": {"type": "string"},
+        "run_id": {"type": "string", "description": "YYYY-MM-DDTHH-MM-SS-<6 hex>"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "finished_at": {"type": "string", "format": "date-time"},
+        "config": {"type": "object"},
+        "summary": {
+          "type": "object",
+          "properties": {
+            "n_cases": {"type": "integer"},
+            "n_optimal": {"type": "integer"},
+            "n_failed": {"type": "integer"},
+            "median_solve_ms": {"type": "number"},
+            "min_solve_ms": {"type": "number"},
+            "max_solve_ms": {"type": "number"},
+            "total_solve_ms": {"type": "number"}
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "title": "Benchmark case",
+      "type": "object",
+      "required": ["benchmark_name", "case_id", "run_id", "n_assets", "n_scenarios", "status"],
+      "properties": {
+        "benchmark_name": {"type": "string"},
+        "case_id": {"type": "string"},
+        "run_id": {"type": "string"},
+        "n_assets": {"type": "integer", "minimum": 0},
+        "n_scenarios": {"type": "integer", "minimum": 0},
+        "method": {"type": "string"},
+        "backend": {"type": "string"},
+        "solver": {"type": "string"},
+        "status": {
+          "type": "string",
+          "description": "optimal | optimal_inaccurate | failed:* | error:* | skipped"
+        },
+        "feasible": {"type": "boolean"},
+        "solve_time_ms": {"type": "number", "minimum": 0},
+        "setup_time_ms": {"type": "number", "minimum": 0},
+        "objective_value": {"type": ["number", "null"]},
+        "expected_return": {"type": ["number", "null"]},
+        "volatility": {"type": ["number", "null"]},
+        "sharpe": {"type": ["number", "null"]},
+        "var_95": {"type": ["number", "null"]},
+        "cvar_95": {"type": ["number", "null"]},
+        "diagnostics": {"type": "object"},
+        "error": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  ]
+}

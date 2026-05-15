@@ -1,0 +1,33 @@
+# Solver backend comparison.
+#
+# Runs the same Mean-CVaR instance through every installed backend and
+# saves JSONL to benchmarks/results/. Use with:
+#
+#   portfolio benchmark --name solver_comparison \
+#       --config configs/experiments/solver_benchmark.yaml
+
+benchmark: solver_comparison
+
+# ── Scale grid ────────────────────────────────────────────────────────────────
+n_assets_grid: [25, 100]
+n_scenarios_grid: [1000, 10000]
+
+# ── Backends to compare ──────────────────────────────────────────────────────
+# Unavailable backends are skipped cleanly with status="skipped".
+backends:
+  - cpu_cvxpy
+  - cpu_scipy
+
+# ── Problem settings (shared across cases) ───────────────────────────────────
+confidence_level: 0.95
+risk_aversion: 1.0
+weight_max: 0.30
+block_size: 20
+
+# ── Reproducibility ──────────────────────────────────────────────────────────
+seed: 42
+
+# ── Output ───────────────────────────────────────────────────────────────────
+output_dir: benchmarks/results
+output_format: jsonl
+fail_fast: false

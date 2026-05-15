@@ -104,6 +104,38 @@ class _ResultAdapter:
     def constraint_report(self):
         return getattr(self._core, "constraint_report", None)
 
+    @property
+    def var_95(self):
+        return getattr(self._core, "var_95", None)
+
+    @property
+    def cvar_95(self):
+        return getattr(self._core, "cvar_95", None)
+
+    @property
+    def solver_status(self):
+        return getattr(self._core, "solver_status", None)
+
+    @property
+    def solve_time_ms(self):
+        return getattr(self._core, "solve_time_ms", None)
+
+    @property
+    def n_scenarios(self):
+        return getattr(self._core, "n_scenarios", None)
+
+    @property
+    def backend(self):
+        return getattr(self._core, "backend", None)
+
+    @property
+    def solver(self):
+        return getattr(self._core, "solver", None)
+
+    @property
+    def objective_value(self):
+        return getattr(self._core, "objective_value", None)
+
 
 def run_optimization(
     returns: np.ndarray,
@@ -117,6 +149,10 @@ def run_optimization(
     constraints=None,
     asset_names: Optional[List[str]] = None,
     sectors: Optional[List[str]] = None,
+    scenarios=None,
+    confidence_level: float = 0.95,
+    risk_aversion: float = 1.0,
+    backend: str = "auto",
     **kwargs,
 ):
     """
@@ -146,6 +182,13 @@ def run_optimization(
         objective=objective,
         target_return=target_return,
         asset_names=asset_names,
+        scenarios=scenarios,
+        confidence_level=confidence_level,
+        risk_aversion=risk_aversion,
+        constraints=constraints,
+        previous_weights=initial_weights,
+        sectors=sectors,
+        backend=backend,
         K=kwargs.get("K"),
         K_screen=kwargs.get("K_screen"),
         K_select=kwargs.get("K_select"),

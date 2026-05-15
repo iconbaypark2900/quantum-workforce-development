@@ -164,6 +164,45 @@ OBJECTIVES_CONFIG = {
         ],
     },
 
+    "mean_cvar": {
+        "label": "Mean-CVaR",
+        "description": (
+            "Mean-Conditional Value-at-Risk (Expected Shortfall) optimization via convex LP. "
+            "Maximizes expected return minus a risk-aversion weighted CVaR, using scenario-based "
+            "tail-loss modeling. More robust than mean-variance under non-normal return distributions "
+            "and fat-tailed scenarios. Supports historical bootstrap, block bootstrap, Gaussian, "
+            "and Student-t scenario generation. "
+            "(Rockafellar & Uryasev 2000; Cornuejols & Tütüncü 2007)"
+        ),
+        "family": "classical",
+        "fast": True,
+        "papers": [
+            {
+                "role": "foundational",
+                "title": "Optimization of Conditional Value-at-Risk",
+                "citation": "Rockafellar & Uryasev (2000) — Journal of Risk",
+                "url": "https://doi.org/10.21314/JOR.2000.038",
+            },
+            {
+                "role": "modern",
+                "title": "Optimization Methods in Finance — Ch. 4: CVaR and Scenario Optimization",
+                "citation": "Cornuejols & Tütüncü (2007) — Cambridge University Press",
+                "url": "https://doi.org/10.1017/CBO9780511753886",
+            },
+        ],
+        "notebooks": [
+            {
+                "path": "playbooks/vendor-neutral-portfolio/notebooks/01_mean_cvar_basic.ipynb",
+                "title": "Mean-CVaR — scenario-based tail-risk portfolio optimization",
+                "download_path": "/downloads/notebooks/01-mean-cvar-basic.ipynb",
+            },
+        ],
+        "code_refs": [
+            {"path": "core/optimizers/mean_cvar.py", "label": "mean_cvar_weights"},
+            {"path": "services/scenario_generation.py", "label": "generate_scenarios"},
+        ],
+    },
+
     "hrp": {
         "label": "HRP",
         "description": (

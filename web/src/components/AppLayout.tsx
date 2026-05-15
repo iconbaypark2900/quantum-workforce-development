@@ -15,7 +15,10 @@ const NAV_ITEMS = [
   { href: "/portfolio", label: "Portfolio Lab", icon: "science" },
   { href: "/strategy", label: "Strategy Builder", icon: "architecture" },
   { href: "/quantum", label: "Quantum Engine", icon: "memory" },
+  { href: "/cvar", label: "CVaR Optimizer", icon: "analytics" },
+  { href: "/solver-lab", label: "Solver Lab", icon: "speed" },
   { href: "/simulations", label: "Simulations", icon: "query_stats" },
+  { href: "/rebalancing", label: "Rebalancing Lab", icon: "autorenew" },
   { href: "/reports", label: "Reports", icon: "description" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];

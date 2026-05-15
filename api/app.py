@@ -1109,6 +1109,21 @@ def optimize_portfolio():
         # Reproducibility
         seed = int(data.get('seed', 42))
 
+        # Mean-CVaR parameters
+        scenario_method = str(data.get('scenario_method', 'gaussian'))
+        n_scenarios = int(data.get('n_scenarios', 5000))
+        confidence_level = float(data.get('confidence_level', 0.95))
+        risk_aversion_cvar = float(data.get('risk_aversion', 1.0))
+
+        # Solver backend selection (Sprint 3)
+        backend_name = str(data.get('backend', 'auto'))
+
+        # Unified portfolio constraints (Sprint 2). When provided, fields from
+        # the nested 'constraints' object take precedence over top-level
+        # weight_min/weight_max for objectives that consume them.
+        _constraints_dict = data.get('constraints') or {}
+        unified_constraints = PortfolioConstraints.from_dict(_constraints_dict)
+
         # ── Validate objective ───────────────────────────────────────────────
         if objective not in OBJECTIVES:
             return error_response(
@@ -1139,12 +1154,35 @@ def optimize_portfolio():
             tr_opt = target_return
             if objective == "target_return" and tr_opt is None:
                 tr_opt = float(np.mean(returns))
+
+            # Build scenario matrix for Mean-CVaR using daily returns panel
+            _scenarios = None
+            if objective == "mean_cvar":
+                from services.scenario_generation import ScenarioConfig, generate_scenarios
+                _valid_methods = ("historical", "block", "gaussian", "student_t")
+                _method = scenario_method if scenario_method in _valid_methods else "gaussian"
+                _sc_cfg = ScenarioConfig(
+                    method=_method,
+                    n_scenarios=n_scenarios,
+                    seed=seed,
+                )
+                _daily = market_payload.daily_returns
+                if _daily is not None and len(_daily) >= 30:
+                    _scenarios = generate_scenarios(_daily, _sc_cfg)
+                # If no daily returns, mean_cvar_weights auto-generates from mu/Sigma
+
             result = run_optimization(
                 returns=returns,
                 covariance=covariance,
                 objective=objective,
                 target_return=float(tr_opt) if tr_opt is not None else None,
                 asset_names=asset_names,
+                scenarios=_scenarios,
+                confidence_level=confidence_level,
+                risk_aversion=risk_aversion_cvar,
+                constraints=unified_constraints if unified_constraints.has_constraints() else None,
+                sectors=sectors_list,
+                backend=backend_name,
                 K=int(K) if K is not None else None,
                 K_screen=int(K_screen) if K_screen is not None else None,
                 K_select=int(K_select) if K_select is not None else None,
@@ -1158,6 +1196,42 @@ def optimize_portfolio():
             )
 
         duration_ms = round((time.time() - t0) * 1000, 2)
+
+        # Sprint 4 — persist artefacts under runs/<run_id>/ for reproducibility.
+        # Failures here are non-fatal: the API still returns the result.
+        fs_run_id = None
+        if os.environ.get("QHP_DISABLE_RUN_ARTIFACTS") not in ("1", "true", "True"):
+            try:
+                from services.run_store import save_optimization_run
+                _save_cfg = {
+                    "objective": objective,
+                    "tickers": tickers,
+                    "asset_names": asset_names,
+                    "weight_min": weight_min,
+                    "weight_max": weight_max,
+                    "seed": seed,
+                    "duration_ms": duration_ms,
+                }
+                if objective == "mean_cvar":
+                    _save_cfg.update({
+                        "scenario_method": scenario_method,
+                        "n_scenarios": n_scenarios,
+                        "confidence_level": confidence_level,
+                        "risk_aversion": risk_aversion_cvar,
+                        "backend": backend_name,
+                    })
+                if unified_constraints.has_constraints():
+                    _save_cfg["constraints"] = unified_constraints.to_dict()
+                fs_run_id = save_optimization_run(
+                    config=_save_cfg,
+                    result=result,
+                    asset_names=asset_names,
+                    sectors=sectors_list,
+                    scenarios=_scenarios,
+                )
+            except Exception as _e:  # pragma: no cover
+                logger.warning("run_store: failed to persist artefacts: %s", _e)
+                fs_run_id = None
 
         # ── Build holdings list ──────────────────────────────────────────────
         holdings = [
@@ -1245,6 +1319,25 @@ def optimize_portfolio():
             _bt = stage.get('backend') or 'classical_qubo'
         else:
             _bt = None
+        # CVaR diagnostics (populated for mean_cvar objective)
+        _cvar_diag = {}
+        if getattr(result, 'var_95', None) is not None:
+            _cvar_diag = {
+                'var_95': round(float(result.var_95), 6),
+                'cvar_95': round(float(result.cvar_95), 6),
+                'solver_status': result.solver_status,
+                'solve_time_ms': result.solve_time_ms,
+                'n_scenarios': result.n_scenarios,
+                'backend': getattr(result, 'backend', None),
+                'solver': getattr(result, 'solver', None),
+                'objective_value': (
+                    round(float(result.objective_value), 6)
+                    if getattr(result, 'objective_value', None) is not None
+                    and result.objective_value == result.objective_value  # NaN check
+                    else None
+                ),
+            }
+
         response_payload = {
             'backend_type': _bt,
             'qsw_result': {
@@ -1254,6 +1347,7 @@ def optimize_portfolio():
                 'volatility': round(result.volatility, 6),
                 'n_active': result.n_active,
                 'objective': result.objective,
+                **_cvar_diag,
             },
             'weights': result.weights.tolist(),
             'sharpe_ratio': round(result.sharpe_ratio, 4),
@@ -1261,6 +1355,7 @@ def optimize_portfolio():
             'volatility': round(result.volatility, 6),
             'n_active': result.n_active,
             'objective': result.objective,
+            **_cvar_diag,
             'holdings': holdings,
             'sector_allocation': sector_data,
             'risk_metrics': risk_metrics,
@@ -1293,6 +1388,9 @@ def optimize_portfolio():
 
         if getattr(result, "constraint_report", None) is not None:
             response_payload["constraint_report"] = result.constraint_report
+        if fs_run_id is not None:
+            response_payload["run_id"] = fs_run_id
+            response_payload["artifacts_url"] = f"/api/runs/{fs_run_id}/artifacts"
 
         if getattr(result, "factor_exposures", None) is not None:
             response_payload["factor_exposures"] = result.factor_exposures
@@ -1843,12 +1941,66 @@ def create_run():
 @app.route('/api/runs/<run_id>', methods=['GET'])
 @require_api_key
 def get_run(run_id):
-    """Fetch a lab run by id (tenant-scoped)."""
+    """Fetch a lab run by id (tenant-scoped).
+
+    First tries the durable SQLite lab_run_service; falls back to the
+    filesystem artefact tree written by `services.run_store` (Sprint 4).
+    When both are present, SQLite wins and the filesystem payload is
+    attached under `artifacts`.
+    """
     tenant_id = getattr(g, "tenant_id", "anonymous")
     run = lab_run_service.get_run(run_id, tenant_id)
-    if not run:
+    artifacts = None
+    try:
+        from services.run_store import get_run_store
+        store = get_run_store()
+        if store.exists(run_id):
+            artifacts = store.read_run(run_id)
+    except Exception:  # pragma: no cover
+        artifacts = None
+
+    if not run and not artifacts:
         return error_response("run not found", code='NOT_FOUND', status=404)
-    return success_response(run)
+
+    if run:
+        if artifacts is not None:
+            run = dict(run)
+            run["artifacts"] = artifacts
+        return success_response(run)
+
+    # Filesystem-only run (created by the optimize endpoint without API auth)
+    return success_response({
+        "id": run_id,
+        "source": "filesystem",
+        "artifacts": artifacts,
+    })
+
+
+@app.route('/api/runs/<run_id>/artifacts', methods=['GET'])
+@limiter.exempt
+def get_run_artifacts(run_id):
+    """Return only the filesystem artefact tree for a run.
+
+    Useful for the dashboard's run inspector, which doesn't always have
+    the tenant context for the durable registry. Returns 404 when no
+    artefacts exist for the given run_id.
+    """
+    try:
+        from services.run_store import get_run_store
+        store = get_run_store()
+        if not store.exists(run_id):
+            return error_response(
+                f"No artefacts found for run {run_id}",
+                code="NOT_FOUND", status=404,
+            )
+        return success_response(store.read_run(run_id))
+    except FileNotFoundError:
+        return error_response("run not found", code="NOT_FOUND", status=404)
+    except Exception as exc:  # pragma: no cover
+        return error_response(
+            f"Failed to read run artefacts: {exc}",
+            code="INTERNAL_ERROR", status=500,
+        )
 
 
 @app.route('/api/runs', methods=['GET'])
@@ -1956,6 +2108,587 @@ def get_config_objectives():
     return success_response({
         'objectives': [{'id': k, **v} for k, v in OBJECTIVES_CONFIG.items()]
     })
+
+
+@app.route('/api/config/solvers', methods=['GET'])
+@limiter.exempt
+def get_config_solvers():
+    """Return available solver backends with capability and availability info.
+
+    Consumed by the dashboard's Solver Transparency Panel and the backend
+    selection dropdown. Each backend reports:
+      - name, family, status
+      - available (deps installed)
+      - supported_objectives
+    """
+    try:
+        from services.solver_router import get_router
+        router = get_router()
+        backends = router.registry.describe_all()
+        return success_response({
+            'backends': backends,
+            'default': 'auto',
+            'routing': {
+                'priority': router.registry._priority,
+            },
+        })
+    except Exception as exc:
+        return error_response(
+            f"Failed to enumerate solver backends: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
+
+
+@app.route('/api/config/scenario-methods', methods=['GET'])
+@limiter.exempt
+def get_config_scenario_methods():
+    """Return supported scenario generation methods for Mean-CVaR."""
+    return success_response({
+        'methods': [
+            {
+                'id': 'historical',
+                'label': 'Historical Bootstrap',
+                'description': 'i.i.d. resampling of historical return rows. Simple baseline.',
+            },
+            {
+                'id': 'block',
+                'label': 'Block Bootstrap',
+                'description': 'Contiguous-block resampling. Preserves autocorrelation; recommended default.',
+                'parameters': {'block_size': 20},
+            },
+            {
+                'id': 'gaussian',
+                'label': 'Gaussian Monte Carlo',
+                'description': 'Parametric simulation from estimated mean and covariance. Fast.',
+            },
+            {
+                'id': 'student_t',
+                'label': 'Student-t Monte Carlo',
+                'description': 'Fat-tailed simulation. Better for crisis modelling.',
+                'parameters': {'df': 5.0},
+            },
+        ],
+        'default': 'gaussian',
+    })
+
+
+# ─── Scenario Generation (Sprint 8) ───
+
+@app.route('/api/scenarios/generate', methods=['POST'])
+@require_api_key
+@limiter.limit("30 per minute")
+def scenarios_generate_endpoint():
+    """Generate a scenario matrix and return per-asset summary statistics.
+
+    Request body
+    ------------
+    {
+      "tickers": ["AAPL", "MSFT", ...],
+      "start_date": "YYYY-MM-DD",       # optional - defaults to 1y back
+      "end_date":   "YYYY-MM-DD",       # optional - defaults to today
+      "method":     "historical|block|gaussian|student_t",
+      "n_scenarios": 5000,
+      "block_size":  20,                # for block
+      "df":          5.0,               # for student_t
+      "seed":        42,
+      "return_full_matrix": false       # when true, include full (S, n) array
+    }
+
+    Response payload includes per-asset summary (mean / std / min / max) and
+    portfolio-loss diagnostics under the equal-weight basket so the dashboard
+    can render the tail-risk preview without re-running the whole engine.
+    Use `return_full_matrix=true` only for small grids (n*S <= 50000) — the
+    payload is capped at 50k cells to protect the JSON size.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        tickers = data.get("tickers") or []
+        method = str(data.get("method", "gaussian")).lower()
+        n_scenarios = int(data.get("n_scenarios", 5000))
+        seed = int(data.get("seed", 42))
+        block_size = int(data.get("block_size", 20))
+        df = float(data.get("df", 5.0))
+        return_full_matrix = bool(data.get("return_full_matrix", False))
+
+        if not tickers:
+            return error_response("tickers is required", code='BAD_REQUEST', status=400)
+        if method not in ("historical", "block", "gaussian", "student_t"):
+            return error_response(
+                f"Unknown method '{method}'. Valid: historical, block, gaussian, student_t",
+                code='BAD_REQUEST', status=400,
+            )
+        if n_scenarios < 1 or n_scenarios > 200_000:
+            return error_response(
+                "n_scenarios must be in [1, 200000]",
+                code='BAD_REQUEST', status=400,
+            )
+
+        # Pull daily returns via the existing provider chain.
+        from services.data_provider_v2 import fetch_market_data
+        start = data.get("start_date") or data.get("start")
+        end = data.get("end_date") or data.get("end")
+        md = fetch_market_data(
+            tickers=tickers,
+            start_date=start,
+            end_date=end,
+            include_daily_returns=True,
+        )
+        daily = md.get("daily_returns")
+        if daily is None or len(daily) < 30:
+            return error_response(
+                "Insufficient daily return history to generate scenarios (need >= 30 rows).",
+                code='BAD_REQUEST', status=400,
+            )
+
+        import numpy as np
+        daily_arr = np.asarray(daily, dtype=float)
+
+        from services.scenario_generation import ScenarioConfig, generate_scenarios
+        cfg = ScenarioConfig(
+            method=method, n_scenarios=n_scenarios,
+            block_size=block_size, df=df, seed=seed,
+        )
+        t0 = time.time()
+        scenarios = generate_scenarios(daily_arr, cfg)
+        gen_ms = round((time.time() - t0) * 1000.0, 2)
+
+        # Per-asset summary
+        names = md.get("names") or md.get("tickers") or tickers
+        means = scenarios.mean(axis=0).tolist()
+        stds = scenarios.std(axis=0).tolist()
+        mins = scenarios.min(axis=0).tolist()
+        maxs = scenarios.max(axis=0).tolist()
+        per_asset = [
+            {"ticker": names[i] if i < len(names) else str(i),
+             "mean": float(means[i]), "std": float(stds[i]),
+             "min": float(mins[i]), "max": float(maxs[i])}
+            for i in range(scenarios.shape[1])
+        ]
+
+        # Equal-weight portfolio loss histogram (handy for the Tail Risk Panel)
+        n_assets = scenarios.shape[1]
+        eq_weight = np.full(n_assets, 1.0 / n_assets)
+        port_losses = -(scenarios @ eq_weight)
+        var_95 = float(np.quantile(port_losses, 0.95))
+        cvar_95 = float(port_losses[port_losses >= var_95].mean())
+        hist_counts, hist_edges = np.histogram(port_losses, bins=40)
+
+        response: dict = {
+            "method": method,
+            "n_scenarios": int(scenarios.shape[0]),
+            "n_assets": int(scenarios.shape[1]),
+            "generation_ms": gen_ms,
+            "per_asset": per_asset,
+            "equal_weight_loss": {
+                "var_95": var_95,
+                "cvar_95": cvar_95,
+                "worst_loss": float(port_losses.max()),
+                "best_gain": float(-port_losses.min()),
+                "histogram": {
+                    "counts": [int(x) for x in hist_counts],
+                    "edges": [float(x) for x in hist_edges],
+                },
+            },
+            "config": {
+                "block_size": block_size if method == "block" else None,
+                "df": df if method == "student_t" else None,
+                "seed": seed,
+            },
+        }
+
+        if return_full_matrix and scenarios.size <= 50_000:
+            response["scenarios"] = scenarios.tolist()
+        elif return_full_matrix:
+            response["scenarios_truncated"] = True
+
+        return success_response(response)
+
+    except ValueError as exc:
+        return error_response(str(exc), code='BAD_REQUEST', status=400)
+    except Exception as exc:  # pragma: no cover
+        logger.exception("scenarios/generate failed")
+        return error_response(
+            f"Scenario generation failed: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
+
+
+# ─── Mean-CVaR dedicated endpoint (Sprint 8) ───
+
+@app.route('/api/portfolio/mean-cvar', methods=['POST'])
+@require_api_key
+@limiter.limit("30 per minute")
+def mean_cvar_endpoint():
+    """Dedicated Mean-CVaR optimisation endpoint.
+
+    Equivalent to POST /api/portfolio/optimize with objective='mean_cvar'
+    but with a tighter, Mean-CVaR-specific request schema. Useful for
+    dashboards that want a focused payload without optional fields.
+
+    Request body
+    ------------
+    {
+      "tickers": [...],
+      "start_date": "YYYY-MM-DD",
+      "end_date":   "YYYY-MM-DD",
+      "scenario_method": "block|historical|gaussian|student_t",
+      "n_scenarios": 5000,
+      "confidence_level": 0.95,
+      "risk_aversion":    1.0,
+      "weight_max":       0.30,
+      "weight_min":       0.0,
+      "backend":          "auto|cpu_cvxpy|cpu_scipy",
+      "constraints":      {...},   # PortfolioConstraints.from_dict shape
+      "block_size":       20,
+      "df":               5.0,
+      "seed":             42
+    }
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+
+        tickers = data.get("tickers") or []
+        if not tickers:
+            return error_response("tickers is required", code='BAD_REQUEST', status=400)
+
+        # Market payload (covariance, returns, daily_returns)
+        try:
+            from services.data_provider import load_market_payload
+            mp = load_market_payload({
+                "tickers": tickers,
+                "start_date": data.get("start_date"),
+                "end_date": data.get("end_date"),
+                "include_daily_returns": True,
+            })
+        except Exception as exc:
+            return error_response(
+                f"Failed to fetch market data: {exc}",
+                code='MARKET_DATA_ERROR', status=400,
+            )
+
+        import numpy as np
+        returns = np.asarray(mp.returns, dtype=float)
+        covariance = np.asarray(mp.covariance, dtype=float)
+        asset_names = list(getattr(mp, "tickers", tickers))
+
+        # Scenario panel
+        scenario_method = str(data.get("scenario_method", "block"))
+        n_scenarios = int(data.get("n_scenarios", 5000))
+        daily = getattr(mp, "daily_returns", None)
+        scenarios = None
+        if daily is not None and len(daily) >= 30:
+            from services.scenario_generation import ScenarioConfig, generate_scenarios
+            scenarios = generate_scenarios(
+                np.asarray(daily, dtype=float),
+                ScenarioConfig(
+                    method=scenario_method,
+                    n_scenarios=n_scenarios,
+                    block_size=int(data.get("block_size", 20)),
+                    df=float(data.get("df", 5.0)),
+                    seed=int(data.get("seed", 42)),
+                ),
+            )
+
+        # Unified constraints
+        _c = data.get("constraints") or {}
+        constraints = PortfolioConstraints.from_dict(_c)
+
+        # Solve
+        t0 = time.time()
+        result = run_optimization(
+            returns=returns,
+            covariance=covariance,
+            objective="mean_cvar",
+            asset_names=asset_names,
+            scenarios=scenarios,
+            confidence_level=float(data.get("confidence_level", 0.95)),
+            risk_aversion=float(data.get("risk_aversion", 1.0)),
+            constraints=constraints if constraints.has_constraints() else None,
+            backend=str(data.get("backend", "auto")),
+            weight_min=float(data.get("weight_min", 0.0)),
+            weight_max=float(data.get("weight_max", 0.30)),
+            seed=int(data.get("seed", 42)),
+        )
+        duration_ms = round((time.time() - t0) * 1000, 2)
+
+        # Build response
+        weights_list = [
+            {"ticker": asset_names[i], "weight": float(result.weights[i])}
+            for i in range(len(asset_names))
+        ]
+        active = [w for w in weights_list if w["weight"] > 1e-4]
+
+        return success_response({
+            "objective": "mean_cvar",
+            "tickers": asset_names,
+            "weights": [float(w) for w in result.weights],
+            "active_holdings": sorted(active, key=lambda r: -r["weight"]),
+            "metrics": {
+                "expected_return": float(result.expected_return),
+                "volatility": float(result.volatility),
+                "sharpe_ratio": float(result.sharpe_ratio),
+                "var_95": float(result.var_95) if result.var_95 is not None else None,
+                "cvar_95": float(result.cvar_95) if result.cvar_95 is not None else None,
+                "n_active": int(result.n_active),
+            },
+            "solver": {
+                "backend": getattr(result, "backend", None),
+                "solver": getattr(result, "solver", None),
+                "status": getattr(result, "solver_status", None),
+                "solve_time_ms": getattr(result, "solve_time_ms", None),
+                "objective_value": (
+                    float(result.objective_value)
+                    if getattr(result, "objective_value", None) is not None
+                    and result.objective_value == result.objective_value
+                    else None
+                ),
+                "n_scenarios": getattr(result, "n_scenarios", None),
+            },
+            "constraint_report": getattr(result, "constraint_report", None),
+            "scenario_method": scenario_method,
+            "duration_ms": duration_ms,
+        })
+
+    except ValueError as exc:
+        return error_response(str(exc), code='BAD_REQUEST', status=400)
+    except Exception as exc:  # pragma: no cover
+        logger.exception("mean-cvar endpoint failed")
+        return error_response(
+            f"Mean-CVaR optimization failed: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
+
+
+@app.route('/api/config/rebalance-policies', methods=['GET'])
+@limiter.exempt
+def get_rebalance_policies():
+    """Return the catalogue of available rebalancing policies (Sprint 5)."""
+    try:
+        from services.rebalancing import list_policies
+        return success_response({"policies": list_policies(), "default": "monthly"})
+    except Exception as exc:  # pragma: no cover
+        return error_response(
+            f"Failed to list rebalance policies: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
+
+
+@app.route('/api/portfolio/rebalance-backtest', methods=['POST'])
+@require_api_key
+@limiter.limit("10 per minute")
+def rebalance_backtest_endpoint():
+    """Run a rebalancing backtest with transaction costs (Sprint 5).
+
+    Request body
+    ------------
+    {
+      "tickers": [...],
+      "start_date": "YYYY-MM-DD",
+      "end_date": "YYYY-MM-DD",
+      "policy": "monthly|quarterly|weekly|yearly|threshold|volatility",
+      "policy_kwargs": {...},                # e.g. {"threshold": 0.05}
+      "objective": "mean_cvar",              # forwarded to run_optimization
+      "weight_min": 0.0, "weight_max": 0.30,
+      "lookback_days": 252,
+      "initial_capital": 100000,
+      "cost_linear_bps": 5.0,
+      "cost_fixed_per_trade": 0.0,
+      "benchmark": "SPY"                     # optional ticker name in panel
+    }
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+
+        tickers = data.get("tickers") or []
+        start = data.get("start_date") or data.get("start")
+        end = data.get("end_date") or data.get("end")
+        if not tickers or not start or not end:
+            return error_response(
+                "tickers, start_date, end_date are required",
+                code='BAD_REQUEST', status=400,
+            )
+
+        # Fetch price panel (uses the existing provider chain)
+        from services.data_provider_v2 import fetch_price_panel
+        panel = fetch_price_panel(tickers, start, end)
+        if panel is None or len(panel) < 30:
+            return error_response(
+                "Insufficient price history for backtest (need >= 30 rows)",
+                code='BAD_REQUEST', status=400,
+            )
+        returns_panel = panel.pct_change().dropna(how="all")
+
+        # Build rebalancing config + optimize kwargs
+        from services.rebalancing import RebalancingConfig, RebalancingEngine
+
+        rb_cfg = RebalancingConfig(
+            policy=str(data.get("policy", "monthly")),
+            policy_kwargs=data.get("policy_kwargs") or {},
+            lookback_days=int(data.get("lookback_days", 252)),
+            initial_capital=float(data.get("initial_capital", 100_000.0)),
+            cost_linear_bps=float(data.get("cost_linear_bps", 0.0)),
+            cost_fixed_per_trade=float(data.get("cost_fixed_per_trade", 0.0)),
+            benchmark=data.get("benchmark"),
+            seed=int(data.get("seed", 42)),
+        )
+
+        objective = str(data.get("objective", "markowitz"))
+        if objective not in OBJECTIVES:
+            return error_response(
+                f"Unknown objective '{objective}'. Valid: {list(OBJECTIVES.keys())}",
+                code='BAD_REQUEST', status=400,
+            )
+
+        opt_kwargs = {
+            "objective": objective,
+            "weight_min": float(data.get("weight_min", 0.005)),
+            "weight_max": float(data.get("weight_max", 0.30)),
+        }
+        # Forward Mean-CVaR controls when present
+        if objective == "mean_cvar":
+            opt_kwargs["confidence_level"] = float(data.get("confidence_level", 0.95))
+            opt_kwargs["risk_aversion"] = float(data.get("risk_aversion", 1.0))
+            opt_kwargs["backend"] = str(data.get("backend", "auto"))
+
+        # Forward unified constraints if provided
+        _c = data.get("constraints")
+        if _c:
+            opt_kwargs["constraints"] = PortfolioConstraints.from_dict(_c)
+
+        t0 = time.time()
+        engine = RebalancingEngine(rb_cfg)
+        result = engine.run(returns_panel, optimize_kwargs=opt_kwargs)
+        duration_ms = round((time.time() - t0) * 1000, 2)
+
+        return success_response({
+            "summary": result.summary(),
+            "dates": result.dates,
+            "portfolio_values": result.portfolio_values,
+            "drawdowns": result.drawdowns,
+            "rebalance_dates": result.rebalance_dates,
+            "weights_history": result.weights_history,
+            "turnover_history": result.turnover_history,
+            "transaction_costs": result.transaction_costs,
+            "benchmark_values": result.benchmark_values,
+            "objective": objective,
+            "duration_ms": duration_ms,
+        })
+    except ValueError as exc:
+        return error_response(str(exc), code='BAD_REQUEST', status=400)
+    except Exception as exc:  # pragma: no cover
+        logger.exception("rebalance_backtest failed")
+        return error_response(
+            f"Rebalance backtest failed: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
+
+
+@app.route('/api/config/benchmarks', methods=['GET'])
+@limiter.exempt
+def get_config_benchmarks():
+    """Return the catalogue of available benchmarks (Sprint 6)."""
+    try:
+        from benchmarks.base import list_benchmarks
+        return success_response({"benchmarks": list_benchmarks()})
+    except Exception as exc:  # pragma: no cover
+        return error_response(
+            f"Failed to list benchmarks: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
+
+
+@app.route('/api/portfolio/benchmark', methods=['POST'])
+@require_api_key
+@limiter.limit("3 per minute")
+def benchmark_endpoint():
+    """Run a benchmark and return summary + cases (Sprint 6).
+
+    Body
+    ----
+    {
+      "name": "mean_cvar_scale" | "solver_comparison" |
+              "scenario_generation" | "rebalancing",
+      "config": { ... benchmark-specific config ... }
+    }
+
+    Size guards: any benchmark larger than 250 assets × 50k scenarios will be
+    rejected via 400. Use the CLI for large runs.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        name = str(data.get("name") or "")
+        cfg_in = dict(data.get("config") or {})
+
+        if not name:
+            return error_response(
+                "`name` is required",
+                code='BAD_REQUEST', status=400,
+            )
+
+        from benchmarks.base import list_benchmarks, load_benchmark_runner
+        valid = {b["id"] for b in list_benchmarks()}
+        if name not in valid:
+            return error_response(
+                f"Unknown benchmark '{name}'. Valid: {sorted(valid)}",
+                code='BAD_REQUEST', status=400,
+            )
+
+        # API size guards — enforce before invoking the runner
+        max_assets = max(int(x) for x in cfg_in.get("n_assets_grid", [25]))
+        max_scenarios = max(int(x) for x in cfg_in.get("n_scenarios_grid", [1000]))
+        if max_assets > 250:
+            return error_response(
+                "API benchmarks are capped at n_assets <= 250. Use the CLI for larger runs.",
+                code='BAD_REQUEST', status=400,
+            )
+        if max_scenarios > 50_000:
+            return error_response(
+                "API benchmarks are capped at n_scenarios <= 50000. Use the CLI for larger runs.",
+                code='BAD_REQUEST', status=400,
+            )
+
+        runner = load_benchmark_runner(name, cfg_in)
+        t0 = time.time()
+        report = runner.run()
+        duration_ms = round((time.time() - t0) * 1000, 2)
+
+        return success_response({
+            "name": name,
+            "run_id": report.run_id,
+            "started_at": report.started_at,
+            "finished_at": report.finished_at,
+            "config": report.config,
+            "summary": report.summary(),
+            "cases": [
+                {
+                    "case_id": c.case_id,
+                    "n_assets": c.n_assets,
+                    "n_scenarios": c.n_scenarios,
+                    "method": c.method,
+                    "backend": c.backend,
+                    "solver": c.solver,
+                    "status": c.status,
+                    "feasible": c.feasible,
+                    "solve_time_ms": c.solve_time_ms,
+                    "setup_time_ms": c.setup_time_ms,
+                    "sharpe": c.sharpe,
+                    "var_95": c.var_95,
+                    "cvar_95": c.cvar_95,
+                    "diagnostics": c.diagnostics,
+                    "error": c.error,
+                }
+                for c in report.cases
+            ],
+            "duration_ms": duration_ms,
+        })
+    except ValueError as exc:
+        return error_response(str(exc), code='BAD_REQUEST', status=400)
+    except Exception as exc:  # pragma: no cover
+        logger.exception("benchmark endpoint failed")
+        return error_response(
+            f"Benchmark failed: {exc}",
+            code='INTERNAL_ERROR', status=500,
+        )
 
 
 @app.route('/api/config/constraints', methods=['GET'])

@@ -1,0 +1,22 @@
+# Scenario-generation timing benchmark.
+#
+#   portfolio benchmark --name scenario_generation \
+#       --config configs/experiments/scenario_benchmark.yaml
+
+benchmark: scenario_generation
+
+n_assets_grid: [25, 100]
+n_scenarios_grid: [1000, 10000, 50000]
+
+methods:
+  - historical
+  - block
+  - gaussian
+  - student_t
+
+block_size: 20
+df: 5.0
+seed: 42
+
+output_dir: benchmarks/results
+output_format: jsonl

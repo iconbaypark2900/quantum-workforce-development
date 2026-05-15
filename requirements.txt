@@ -6,6 +6,20 @@ pandas==2.3.3
 scipy==1.16.2
 scikit-learn==1.7.2
 
+# Convex optimization (Mean-CVaR, solver backend router)
+cvxpy>=1.4.0
+clarabel>=0.6.0
+
+# Vendor-neutral data layer (Parquet cache, DuckDB analytics, Polars frames)
+# All three are "soft" — the data_layer modules degrade to pandas when missing,
+# but installing them is recommended for production.
+pyarrow>=14.0.0
+duckdb>=0.9.0
+polars>=0.20.0
+
+# CLI (portfolio_cli.py)
+click>=8.1.0
+
 # Graph/networking
 networkx==3.5
 

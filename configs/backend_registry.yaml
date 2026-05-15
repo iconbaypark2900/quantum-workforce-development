@@ -1,0 +1,106 @@
+# Backend registry — describes the solver backends available to the
+# vendor-neutral quantitative engine.
+#
+# Loaded for documentation / dashboard surfaces. The runtime registry is
+# constructed in `services/solver_router.py`; this file is the source of
+# truth for human-readable descriptions and routing hints.
+
+version: 1
+
+# Default routing policy. Auto-router consults `priority` order and the
+# problem spec (see services.solver_router.SolverRouter._auto_decide).
+routing:
+  priority:
+    - cpu_cvxpy
+    - cpu_scipy
+    - milp_highspy
+  size_thresholds:
+    medium_n_assets: 100
+    medium_n_scenarios: 10000
+    large_n_assets: 250
+    large_n_scenarios: 50000
+
+backends:
+
+  cpu_cvxpy:
+    label: "CVXPY (CLARABEL / SCS)"
+    family: cpu
+    family_label: "CPU — convex programming"
+    solver_default: CLARABEL
+    solver_alternatives:
+      - CLARABEL
+      - SCS
+    install: "pip install cvxpy clarabel"
+    supports:
+      objectives: [mean_cvar, min_variance, markowitz]
+      short_selling: true
+      leverage: true
+      turnover: true
+      sector_caps: true
+      cardinality: false
+    when_to_use: |
+      Default backend for small and medium portfolios (n <= 250). Highest
+      accuracy and the broadest constraint coverage. Required for short
+      selling and SOCP / QP objectives.
+
+  cpu_scipy:
+    label: "scipy.optimize.linprog (HiGHS)"
+    family: cpu
+    family_label: "CPU — direct LP via HiGHS"
+    solver_default: HiGHS
+    solver_alternatives:
+      - HiGHS
+    install: "(scipy is already a base requirement)"
+    supports:
+      objectives: [mean_cvar]
+      short_selling: false
+      leverage: true
+      turnover: true
+      sector_caps: true
+      cardinality: false
+    when_to_use: |
+      Use for large scenario counts (S >> 10k) or large asset universes
+      (n > 250) where CVXPY canonicalisation becomes the bottleneck. Pure
+      LP path — typically 2-5x faster than CVXPY at scale.
+
+  milp_highspy:
+    label: "HiGHS MILP (highspy)"
+    family: cpu
+    family_label: "CPU — mixed-integer programming"
+    solver_default: HiGHS
+    solver_alternatives:
+      - HiGHS
+    install: "pip install highspy"
+    supports:
+      objectives: [mean_cvar]
+      short_selling: false
+      leverage: true
+      turnover: true
+      sector_caps: true
+      cardinality: true        # planned — currently falls back to LP relaxation
+    status: experimental
+    when_to_use: |
+      Reserved for problems with exact cardinality ("select exactly K
+      assets") or other integer constraints. Status: scaffolded — full
+      MILP big-M encoding lands with the rebalancing-lab sprint. Calls
+      currently return the LP relaxation with a fallback diagnostic.
+
+# Optional / future backends — listed for transparency only. Not registered
+# by default.
+future_backends:
+  jax_backend:
+    family: gpu
+    install: "pip install jax jaxlib"
+    when_to_use: "GPU-accelerated differentiable solvers, batch experiments."
+  torch_backend:
+    family: gpu
+    install: "pip install torch"
+    when_to_use: "Differentiable tensor backend for end-to-end gradient flows."
+  quantum_qaoa:
+    family: quantum
+    install: "pip install qiskit qiskit-ibm-runtime"
+    when_to_use: "Already exposed through the existing 'qaoa' / 'hybrid_qaoa' objectives."
+  cuopt:
+    family: gpu
+    install: "pip install cuopt-cu12"
+    when_to_use: "Optional NVIDIA acceleration — must remain a plugin, never required."

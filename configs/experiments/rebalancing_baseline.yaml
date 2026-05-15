@@ -1,0 +1,36 @@
+# Rebalancing backtest baseline.
+#
+# Run a single rebalancing backtest against a synthetic universe and
+# persist the artifacts under runs/<run_id>/. Use with:
+#
+#   portfolio backtest --config configs/experiments/rebalancing_baseline.yaml
+
+experiment: rebalancing_baseline
+
+# ── Universe ──────────────────────────────────────────────────────────────────
+universe:
+  source: synthetic
+  n_assets: 10
+  n_history: 504
+  seed: 42
+
+# ── Rebalancing policy ───────────────────────────────────────────────────────
+rebalancing:
+  policy: monthly
+  policy_kwargs: {}
+  lookback_days: 63
+  initial_capital: 100000
+  cost_linear_bps: 5.0
+  cost_fixed_per_trade: 0.0
+
+# ── Optimizer (called at each rebalance) ─────────────────────────────────────
+optimizer:
+  objective: markowitz
+  backend: auto
+  weight_min: 0.005
+  weight_max: 0.30
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output:
+  runs_dir: runs
+  save_artifacts: true

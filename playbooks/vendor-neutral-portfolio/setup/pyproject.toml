@@ -1,0 +1,52 @@
+# Playbook setup — the *minimum* dependencies a user needs to run the
+# five guided notebooks. The main project's `requirements.txt` is the
+# source of truth; this file is what gets installed into a dedicated
+# Jupyter kernel via `setup_playbook.sh`.
+
+[project]
+name = "qhp-playbook-vendor-neutral"
+version = "0.1.0"
+description = "Vendor-neutral portfolio optimisation playbook for quantum-hybrid-portfolio"
+requires-python = ">=3.11"
+readme = "../README.md"
+
+dependencies = [
+  # Numerics
+  "numpy>=2.0",
+  "scipy>=1.13",
+  "pandas>=2.0",
+  "scikit-learn>=1.5",
+
+  # Convex optimization (Mean-CVaR LP path)
+  "cvxpy>=1.4",
+  "clarabel>=0.6",
+
+  # Data layer (Parquet cache + analytical queries)
+  "pyarrow>=14.0",
+  "duckdb>=0.9",
+  "polars>=0.20",
+
+  # Visualisation
+  "matplotlib>=3.8",
+  "seaborn>=0.13",
+
+  # CLI / config
+  "click>=8.1",
+  "pyyaml>=6.0",
+
+  # Notebook kernel
+  "jupyter>=1.0",
+  "ipykernel>=6.29",
+]
+
+[project.optional-dependencies]
+# Quantum-inspired (only needed by notebook 05 if you want the real quantum
+# stack — classical fallbacks are used otherwise).
+quantum = [
+  "qiskit>=2.0; python_version<'3.13'",
+  "qiskit-aer>=0.13; python_version<'3.13'",
+]
+
+[tool.setuptools]
+# Empty list — this is a meta-package, no Python code ships with it.
+packages = []

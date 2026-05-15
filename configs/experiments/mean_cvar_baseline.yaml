@@ -1,0 +1,38 @@
+# Mean-CVaR baseline experiment.
+#
+# Solves a single Mean-CVaR portfolio against a synthetic universe and saves
+# the artifacts under `runs/<run_id>/`. Use with the CLI:
+#
+#   portfolio optimize --config configs/experiments/mean_cvar_baseline.yaml
+#
+# Override anything from the command line with `--set key=value`.
+
+experiment: mean_cvar_baseline
+
+# ── Universe ──────────────────────────────────────────────────────────────────
+universe:
+  source: synthetic         # synthetic | tickers
+  n_assets: 25
+  n_history: 504
+  seed: 42
+
+# ── Optimizer ─────────────────────────────────────────────────────────────────
+optimizer:
+  objective: mean_cvar
+  backend: auto
+  weight_min: 0.0
+  weight_max: 0.30
+  confidence_level: 0.95
+  risk_aversion: 1.0
+
+# ── Scenarios ─────────────────────────────────────────────────────────────────
+scenarios:
+  method: block
+  n_scenarios: 10000
+  block_size: 20
+  seed: 42
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output:
+  runs_dir: runs        # written to ./runs/<run_id>/ by default
+  save_artifacts: true

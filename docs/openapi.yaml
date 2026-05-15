@@ -364,6 +364,221 @@ paths:
           description: Unauthorized (missing or invalid API key)
         "429":
           description: Rate limited
+  /api/portfolio/mean-cvar:
+    post:
+      summary: Mean-CVaR scenario-based optimization (Sprint 1 + 8)
+      description: >
+        Dedicated Mean-CVaR endpoint. Fetches a daily-returns panel, generates
+        a scenario matrix, and solves the Rockafellar–Uryasev (2000) LP via
+        the solver router. Tighter request schema than `/api/portfolio/optimize`
+        — useful for dashboards that want a focused Mean-CVaR-only payload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tickers]
+              properties:
+                tickers:
+                  type: array
+                  items: { type: string }
+                start_date: { type: string, format: date }
+                end_date: { type: string, format: date }
+                scenario_method:
+                  type: string
+                  enum: [historical, block, gaussian, student_t]
+                  default: block
+                n_scenarios: { type: integer, default: 5000, minimum: 1, maximum: 200000 }
+                confidence_level: { type: number, default: 0.95 }
+                risk_aversion: { type: number, default: 1.0 }
+                weight_min: { type: number, default: 0.0 }
+                weight_max: { type: number, default: 0.30 }
+                backend:
+                  type: string
+                  enum: [auto, cpu_cvxpy, cpu_scipy, milp_highspy]
+                  default: auto
+                constraints:
+                  type: object
+                  description: PortfolioConstraints — see `/api/config/constraints`
+                block_size: { type: integer, default: 20 }
+                df: { type: number, default: 5.0 }
+                seed: { type: integer, default: 42 }
+      responses:
+        "200":
+          description: Mean-CVaR result wrapped in standard envelope
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weights: { type: array, items: { type: number } }
+                  metrics:
+                    type: object
+                    properties:
+                      expected_return: { type: number }
+                      volatility: { type: number }
+                      sharpe_ratio: { type: number }
+                      var_95: { type: number }
+                      cvar_95: { type: number }
+                  solver:
+                    type: object
+                    properties:
+                      backend: { type: string }
+                      solver: { type: string }
+                      status: { type: string }
+                      solve_time_ms: { type: number }
+                      objective_value: { type: number }
+                      n_scenarios: { type: integer }
+        "400": { description: Bad request }
+
+  /api/portfolio/rebalance-backtest:
+    post:
+      summary: Rebalancing backtest with transaction costs (Sprint 5)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tickers, start_date, end_date]
+              properties:
+                tickers:
+                  type: array
+                  items: { type: string }
+                start_date: { type: string, format: date }
+                end_date: { type: string, format: date }
+                policy:
+                  type: string
+                  enum: [weekly, monthly, quarterly, yearly, threshold, volatility]
+                  default: monthly
+                policy_kwargs: { type: object }
+                objective: { type: string, default: markowitz }
+                weight_max: { type: number, default: 0.30 }
+                cost_linear_bps: { type: number, default: 0.0 }
+                cost_fixed_per_trade: { type: number, default: 0.0 }
+                lookback_days: { type: integer, default: 252 }
+                initial_capital: { type: number, default: 100000 }
+      responses:
+        "200": { description: Backtest result with summary + time series }
+
+  /api/portfolio/benchmark:
+    post:
+      summary: Run a benchmark (Sprint 6)
+      description: >
+        Capped at n_assets <= 250 and n_scenarios <= 50000 for the API path.
+        Use the `portfolio benchmark` CLI for larger runs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  enum: [mean_cvar_scale, solver_comparison, scenario_generation, rebalancing]
+                config: { type: object }
+      responses:
+        "200": { description: Benchmark report with cases }
+
+  /api/scenarios/generate:
+    post:
+      summary: Generate a scenario matrix + summary stats (Sprint 8)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tickers]
+              properties:
+                tickers:
+                  type: array
+                  items: { type: string }
+                start_date: { type: string, format: date }
+                end_date: { type: string, format: date }
+                method:
+                  type: string
+                  enum: [historical, block, gaussian, student_t]
+                  default: gaussian
+                n_scenarios: { type: integer, default: 5000 }
+                block_size: { type: integer, default: 20 }
+                df: { type: number, default: 5.0 }
+                seed: { type: integer, default: 42 }
+                return_full_matrix: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Scenario summary with equal-weight loss histogram
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  method: { type: string }
+                  n_scenarios: { type: integer }
+                  n_assets: { type: integer }
+                  per_asset:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticker: { type: string }
+                        mean: { type: number }
+                        std: { type: number }
+                        min: { type: number }
+                        max: { type: number }
+                  equal_weight_loss:
+                    type: object
+                    properties:
+                      var_95: { type: number }
+                      cvar_95: { type: number }
+                      worst_loss: { type: number }
+                      best_gain: { type: number }
+                      histogram:
+                        type: object
+                        properties:
+                          counts: { type: array, items: { type: integer } }
+                          edges: { type: array, items: { type: number } }
+
+  /api/config/solvers:
+    get:
+      summary: List solver backends (Sprint 3)
+      responses:
+        "200": { description: Backend registry + auto routing priority }
+
+  /api/config/scenario-methods:
+    get:
+      summary: List scenario generation methods (Sprint 3)
+      responses:
+        "200": { description: Available scenario methods + default }
+
+  /api/config/rebalance-policies:
+    get:
+      summary: List rebalancing policies (Sprint 5)
+      responses:
+        "200": { description: Policy catalogue with default parameters }
+
+  /api/config/benchmarks:
+    get:
+      summary: List benchmarks (Sprint 6)
+      responses:
+        "200": { description: Benchmark catalogue }
+
+  /api/runs/{run_id}/artifacts:
+    get:
+      summary: Filesystem artefacts for a run (Sprint 4)
+      parameters:
+        - in: path
+          name: run_id
+          schema: { type: string }
+          required: true
+      responses:
+        "200":
+          description: Run artefact tree (config, metrics, weights, scenario_summary, solver_diagnostics)
+        "404": { description: No artefacts for this run id }
+
   /api/portfolio/optimize/batch:
     post:
       summary: Run batch optimization (up to 100)
