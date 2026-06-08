@@ -12,37 +12,455 @@ app_port: 7860
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Quantum-inspired portfolio optimization running on classical hardware.**
+Quantum-inspired portfolio optimization on classical hardware — hybrid pipelines, QUBO+SA, VQE, QAOA, and classical methods for robust allocations without requiring quantum hardware.
 
-This project implements quantum-inspired portfolio optimization: hybrid pipelines, QUBO+SA, VQE, and classical methods, delivering robust allocations without requiring quantum hardware.
+| Audience | Start Here |
+|---|---|
+| New reader | [Problem statement](#problem-statement) |
+| Operator | [Current phase](#current-phase) and [Getting started](docs/GETTING_STARTED.md) |
+| Engineer | [Architecture](#architecture) and [Repository layout](#repository-layout) |
+| Researcher | [Strategy stack](#strategy-stack) and [Evaluation](#evaluation) |
+| Diagrams | [Visual reference](#visual-reference) |
 
-## Key Features
+## Reading Order
 
-- **Hybrid 3-Stage Pipeline** — Screening, quantum-inspired selection, optimization (Buonaiuto/Herman 2025)
-- **QUBO + Simulated Annealing** — Discrete optimization (Orús et al. 2019)
-- **VQE PauliTwoDesign** — Variational quantum eigensolver-inspired weights (Scientific Reports 2023)
-- **Multiple Optimization Objectives** — Equal weight, Markowitz, Min Variance, HRP, Target Return
-- **Hybrid Quantum-Classical Workflows** — VQE for risk, QAOA for optimization, TensorFlow Quantum integration
-- **Interactive Dashboard** — React-based frontend with real-time optimization and backtesting
-- **REST API** — Full-featured API with rate limiting, caching, and Prometheus metrics
+1. [Problem statement](#problem-statement)
+2. [Project analysis](#project-analysis)
+3. [Visual map](#visual-map)
+4. [Architecture](#architecture)
+5. [Strategy stack](#strategy-stack)
+6. [Core pipeline](#core-pipeline)
+7. [Data model](#data-model)
+8. [Repository layout](#repository-layout)
+9. [Quick start](#quick-start)
+10. [Current phase](#current-phase)
+11. [Visual reference](#visual-reference)
+
+---
+
+## Problem Statement
+
+Traditional mean-variance optimization is sensitive to estimation error and often produces unstable or extreme weights. Portfolio operators need:
+
+- **Robust allocations** across classical and quantum-inspired solvers
+- **Traceable runs** from market data through optimization to backtest and PDF export
+- **Optional IBM Quantum / Braket paths** with explicit classical fallbacks
+- **An operator UI** (Next.js Portfolio Lab) and a **REST API** for automation
+
+This project delivers a unified optimization platform: screening, discrete selection, and continuous weight refinement — with reproducible artifacts and tenant-scoped credentials.
+
+---
+
+## Project Analysis
+
+| Dimension | Summary |
+|---|---|
+| Domain | Portfolio optimization, backtesting, sensitivity analysis, QOBLIB benchmarking |
+| Runtime | Flask API (`python -m api`, port 5000), Next.js UI (`web/`, port 3042), optional CRA legacy UI |
+| Decision layer | Hybrid 3-stage pipeline, QUBO+SA, VQE, QAOA, Markowitz, HRP, equal-weight, target-return |
+| Data | Tiingo (primary) or yfinance (fallback); SQLite tenant DB (`API_DB_PATH`) |
+| Evaluation | Pytest, QOBLIB benchmark harness, walk-forward / stress simulations in UI |
+| Deploy | Docker, Fly.io (two-app), Vercel (two-project), Hugging Face Spaces |
+
+Full narrative: [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md).
+
+---
+
+## Visual Map
+
+This project uses diagrams and generated charts to explain system behavior.
+
+| Visual | Purpose |
+|---|---|
+| Architecture diagram | Shows API, UI, services, optimizers, and external backends |
+| Pipeline diagram | Shows market data → optimize → score → backtest → report |
+| Sequence diagram | Shows runtime behavior between UI, API, and optimizers |
+| State diagram | Shows objective routing and IBM/classical fallback gates |
+| ER diagram | Shows core SQLite entities and run traceability |
+| Package diagram | Shows code boundaries (`api`, `services`, `core`, `methods`) |
+| Strategy timeline | Shows evolution from classical baselines to quantum-inspired layers |
+| Generated charts | Backtests, QOBLIB benchmarks, sensitivity heatmaps |
+
+---
+
+## Architecture
+
+Quantum Hybrid Portfolio is organized into five layers:
+
+| Layer | Responsibility |
+|---|---|
+| Interface | Next.js Portfolio Lab (`web/`), legacy CRA (`frontend/`), CLI scripts, notebooks |
+| Application | Flask routes (`api/app.py`), lab run service, async jobs, report generator |
+| Decision | Hybrid pipeline, QUBO-SA, VQE, QAOA, Markowitz, HRP, regime-aware presets |
+| Data | SQLite (`lab_runs`, tenant integrations), market cache, QOBLIB CSV/JSON artifacts |
+| Evaluation | Pytest, QOBLIB harness, walk-forward/stress tabs, PDF export pre-flight |
+
+```mermaid
+flowchart TB
+  subgraph interface [Interface Layer]
+    WEB[Next.js Lab]
+    CRA[CRA Dashboard]
+    NB[Notebooks]
+  end
+
+  subgraph app [Application Layer]
+    API[Flask API]
+    RUNS[Lab Run Service]
+    RPT[Report Generator]
+  end
+
+  subgraph decision [Decision Layer]
+    HYB[Hybrid Pipeline]
+    QUBO[QUBO + SA]
+    VQE[VQE / QAOA]
+    CLS[Markowitz / HRP]
+  end
+
+  subgraph data [Data Layer]
+    DB[(SQLite)]
+    MD[Market Data]
+    ART[(QOBLIB / Reports)]
+  end
+
+  subgraph eval [Evaluation Layer]
+    TESTS[Pytest]
+    QOB[QOBLIB Benchmarks]
+    SIM[Stress / Walk-Forward]
+  end
+
+  WEB --> API
+  CRA --> API
+  NB --> API
+  API --> RUNS
+  API --> HYB
+  API --> QUBO
+  API --> VQE
+  API --> CLS
+  HYB --> MD
+  RUNS --> DB
+  API --> RPT
+  RPT --> ART
+  QOB --> ART
+  TESTS --> API
+  SIM --> API
+  VQE --> IBM[IBM Quantum Runtime]
+  QUBO --> BRAKET[AWS Braket optional]
+```
+
+Deeper breakdown: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Hosting topology: [docs/HOSTING_NEXT_AND_FLASK_ARCHITECTURE.md](docs/HOSTING_NEXT_AND_FLASK_ARCHITECTURE.md).
+
+---
+
+## Strategy Stack
+
+Optimization methods share a single entry point: `services.portfolio_optimizer.run_optimization`.
+
+| Layer | Method | Role |
+|---|---|---|
+| Baseline | `equal_weight` | 1/N reference |
+| Classical | `markowitz`, `min_variance`, `target_return` | Mean-variance family |
+| Diversification | `hrp` | Hierarchical Risk Parity (López de Prado) |
+| Discrete | `qubo_sa` | QUBO + simulated annealing (Orús et al.) |
+| Variational | `vqe`, `qaoa`, `hybrid_qaoa` | IBM Runtime or classical fallback |
+| Hybrid | `hybrid` | 3-stage IC screen → selection → Markowitz (Buonaiuto/Herman 2025) |
+
+```python
+from services.portfolio_optimizer import run_optimization
+
+result = run_optimization(returns, covariance, objective="hybrid")
+result = run_optimization(returns, covariance, objective="qubo_sa")
+result = run_optimization(returns, covariance, objective="vqe")
+```
+
+Legacy API aliases (`max_sharpe` → `markowitz`, `risk_parity` → `hrp`) are mapped in the service layer.
+
+### Strategy Evolution
+
+The strategy is cumulative. Later layers extend earlier safety checks rather than replacing them.
+
+```mermaid
+timeline
+  title Strategy evolution
+
+  section Baseline
+    v0 Equal weight : Deterministic 1/N baseline
+
+  section Classical
+    v1 Markowitz : Mean-variance and target-return
+    v2 HRP : Hierarchical diversification
+
+  section Discrete
+    v3 QUBO + SA : Binary asset selection
+
+  section Quantum-inspired
+    v4 VQE : Variational weight / risk estimation
+    v5 QAOA : QUBO-family optimization via Runtime
+    v6 Hybrid 3-stage : Screen, select, optimize
+
+  section Production
+    v7 Regime integration : Market regime → optimizer params
+    v8 QOBLIB benchmarks : Multi-solver comparison and artifacts
+```
+
+Research basis: [docs/TECHNICAL_PAPER.md](docs/TECHNICAL_PAPER.md).
+
+---
+
+## Core Pipeline
+
+The project follows a repeatable input-to-output pipeline.
+
+| Step | Purpose | Output |
+|---|---|---|
+| Ingest | Fetch prices (Tiingo / yfinance) or accept user matrices | Returns, covariance |
+| Validate | Schema, ticker coverage, constraint bounds | Validated input |
+| Transform | Regime detection, universe filtering, preset application | Processed spec |
+| Analyze | Run selected optimizer (hybrid, QUBO, VQE, classical) | Candidate weights |
+| Score | Sharpe, volatility, turnover, constraint satisfaction | Metrics + provenance |
+| Review | Operator inspects Lab UI, sensitivity, or QOBLIB run | Accepted allocation |
+| Output | Persist run, backtest, PDF report, or QOBLIB artifact | Final artifact |
+
+```mermaid
+flowchart LR
+  A[Market Data / Input] --> B[Validate]
+  B --> C[Transform]
+  C --> D[Optimize]
+  D --> E[Score Metrics]
+  E --> F{Decision}
+  F -->|Accept| G[Backtest / Report]
+  F -->|Compare| H[QOBLIB / Sensitivity]
+  F -->|Retry| I[Different Objective]
+  H --> G
+```
+
+Pipeline ownership: [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md).
+
+---
+
+## Runtime Flow
+
+Typical Portfolio Lab optimize request:
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant UI as Next.js Lab
+  participant API as Flask API
+  participant Opt as Portfolio Optimizer
+  participant MD as Market Data
+  participant DB as SQLite
+
+  User->>UI: Configure universe and objective
+  UI->>API: POST /api/portfolio/optimize
+  API->>MD: Fetch or validate returns/covariance
+  API->>Opt: run_optimization(...)
+  Opt->>Opt: Hybrid / QUBO / VQE / classical path
+  alt IBM token present
+    Opt->>Opt: IBM Runtime attempt
+  else No token or failure
+    Opt->>Opt: Classical fallback
+  end
+  Opt->>API: Weights + metrics + provenance
+  API->>DB: Persist lab_run optional
+  API->>UI: JSON result
+  User->>UI: Backtest or export PDF
+```
+
+---
+
+## Decision States
+
+Objective and backend routing for optimization requests:
+
+| State | Meaning | Action |
+|---|---|---|
+| Invalid input | Missing returns/covariance or constraint violation | Stop and return 400 |
+| Classical path | Objective is markowitz/hrp/equal_weight | Run classical solver |
+| Simulator | VQE/QAOA without IBM token | Classical or local simulator fallback |
+| Hardware candidate | IBM token + runtime objective | Attempt IBM Quantum Runtime |
+| Fallback | Runtime error or cap exceeded | Log and use classical/QUBO-SA path |
+| Completed | Weights and metrics produced | Return result + optional run_id |
+| Failed | Unrecoverable solver error | Persist error on lab_run |
+
+```mermaid
+stateDiagram-v2
+  [*] --> Invalid: bad input
+  [*] --> Classical: markowitz/hrp/eq
+  [*] --> Simulator: vqe/qaoa no token
+  [*] --> Hardware: vqe/qaoa + IBM token
+  Classical --> Completed
+  Simulator --> Completed
+  Simulator --> Fallback: runtime error
+  Hardware --> Completed
+  Hardware --> Fallback: timeout/cap
+  Fallback --> Completed
+  Invalid --> [*]
+  Completed --> [*]
+  Fallback --> Failed: no fallback
+  Failed --> [*]
+```
+
+IBM credential flow: [docs/ibm-quantum-credentials.md](docs/ibm-quantum-credentials.md).
+
+---
+
+## Data Model
+
+The data model preserves traceability from request to stored run and export.
+
+| Table / Entity | Purpose |
+|---|---|
+| `lab_runs` | Async/sync optimization runs (spec, result, status, tenant) |
+| Tenant integrations | IBM Quantum token, optional instance CRN (per `tenant_id`) |
+| `api_keys` | Optional per-tenant API keys |
+| Market cache | In-memory TTL cache for price panels |
+| QOBLIB artifacts | `results/qoblib/runs/{run_id}.json`, `results/qoblib/results.csv` |
+| PDF artifacts | Generated on demand via WeasyPrint (Fly/local only) |
+
+```mermaid
+erDiagram
+  lab_runs ||--o{ artifacts : may_produce
+  tenant ||--o{ integrations : stores
+  tenant ||--o{ lab_runs : owns
+  lab_runs {
+    text id PK
+    text tenant_id
+    text status
+    text spec_json
+    text result_json
+  }
+```
+
+Full pipeline map: [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md).
+
+---
+
+## Package Boundaries
+
+The codebase separates routes, services, optimizers, methods, and UI.
+
+```mermaid
+classDiagram
+  class api {
+    routes
+    auth
+    tenant_resolution
+  }
+
+  class services {
+    portfolio_optimizer
+    backtest
+    market_data
+    lab_run_service
+    report_generator
+    ibm_quantum
+  }
+
+  class core {
+    optimizers
+    quantum_inspired
+    orchestrator
+  }
+
+  class methods {
+    hybrid_pipeline
+    qubo_sa
+    vqe
+    qaoa
+    markowitz
+    hrp
+  }
+
+  class web {
+    Portfolio Lab pages
+    api client
+    proxy route
+  }
+
+  api --> services
+  services --> core
+  services --> methods
+  web --> api
+```
+
+---
+
+## Repository Layout
+
+```text
+quantum-hybrid-portfolio/
+├── api/                        # Flask REST API (python -m api)
+├── core/
+│   ├── optimizers/             # equal_weight, markowitz, hrp, qubo_sa, vqe, qaoa
+│   ├── quantum_inspired/       # Braket, QAOA, VQE risk, quantum walks
+│   └── orchestrator/           # End-to-end pipeline orchestration
+├── methods/                    # Optimizer implementations
+├── services/                   # Business logic, market data, IBM Quantum, reports
+├── web/                        # Next.js dashboard (PRIMARY UI, port 3042)
+├── frontend/                   # CRA dashboard (legacy reference, port 3000)
+├── deps/                       # Python requirements — see deps/README.md
+├── deploy/docker/              # Dockerfiles + compose — see deploy/docker/README.md
+├── scripts/                    # dev.sh, run-next-web.sh, deploy helpers
+├── config/                     # api_config, presets, settings
+├── configs/                    # Externalized run/experiment configs
+├── data/                       # Sample data; SQLite when local (API_DB_PATH)
+├── benchmarks/qoblib/          # QOBLIB benchmark harness
+├── tests/                      # Pytest suite
+├── notebooks/                  # Research walkthroughs
+├── templates/                  # Jinja2 PDF report templates
+├── legacy/                     # Archived stack — see legacy/README.md
+└── docs/                       # Documentation — see docs/DOCUMENTATION_INDEX.md
+```
+
+```mermaid
+flowchart LR
+  subgraph apps [Entry Points]
+    API[api]
+    WEB[web]
+    HF[serve_hf.py]
+  end
+
+  subgraph src [Core Code]
+    SVC[services]
+    CORE[core]
+    METH[methods]
+  end
+
+  DOCS[docs]
+  TESTS[tests]
+  SCRIPTS[scripts]
+  BENCH[benchmarks]
+
+  apps --> SVC
+  SVC --> CORE
+  SVC --> METH
+  scripts --> apps
+  tests --> SVC
+  docs --> apps
+  BENCH --> METH
+```
+
+Top-level config: `pyproject.toml`, `vercel.json`, `fly.toml`, `AGENTS.md`.
+
+---
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Install dependencies
 
 ```bash
 pip install -r deps/requirements.txt
 pip install -e .
 ```
 
-### 2. Configure Environment
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env — API_KEY, TIINGO_API_KEY, CORS_ORIGINS as needed
 ```
 
-### 3. Run Quick Test
+### 3. Run quick test
 
 ```bash
 python tests/quick_test.py
@@ -54,72 +472,29 @@ python tests/quick_test.py
 python -m api
 ```
 
-The API runs at **http://localhost:5000**
+API: **http://localhost:5000** — health: `/api/health`, OpenAPI: `/api/docs/openapi`
 
-- Health check: http://localhost:5000/api/health
-- OpenAPI docs: http://localhost:5000/api/docs/openapi
-
-### 5. Launch Dashboard
+### 5. Launch dashboard
 
 **Next.js (primary):**
 
 ```bash
 cd web && npm install && cd ..
-./scripts/run-next-web.sh        # preferred: respects NEXT_WEB_PORT
-# or, equivalently:
-# cd web && npm run dev
+./scripts/run-next-web.sh        # NEXT_WEB_PORT default 3042
 ```
 
-Dashboard opens at **http://localhost:3042** (configured via `NEXT_WEB_PORT`; defaults to 3042 to avoid conflicts with the API on 5000). To start Flask + Next together in one flow, use `./scripts/dev.sh` (`--api-only` and `--next-only` flags are supported).
+Or start Flask + Next together: `./scripts/dev.sh` (`--api-only`, `--next-only` supported).
 
-**CRA (legacy, archived):** The original React dashboard in `frontend/` is retained for reference. To run it: `cd frontend && npm install && npm start` (http://localhost:3000).
+**CRA (legacy):** `cd frontend && npm install && npm start` → http://localhost:3000
 
-### Public demo
+Full guide: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md). Public demo: [docs/PUBLIC_DEMO.md](docs/PUBLIC_DEMO.md).
 
-To **host** a browser-only demo or understand disclaimers and limits, see **[docs/PUBLIC_DEMO.md](docs/PUBLIC_DEMO.md)**. Deploying to Hugging Face Spaces: **[docs/HUGGINGFACE_SPACES.md](docs/HUGGINGFACE_SPACES.md)**.
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Install, run API, run dashboard, troubleshooting |
-| [docs/PUBLIC_DEMO.md](docs/PUBLIC_DEMO.md) | Public demo: audience, disclaimer, hosting |
-| [docs/DASHBOARD_GUIDE.md](docs/DASHBOARD_GUIDE.md) | Dashboard user guide (canonical) |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture |
-| [docs/API_REFERENCE.md](docs/API_REFERENCE.md) | API reference |
-| [docs/HUGGINGFACE_SPACES.md](docs/HUGGINGFACE_SPACES.md) | Hugging Face Spaces deployment |
-| [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | Full documentation index |
-| [examples/](examples/) | Code examples |
-
-## Optimization Methods
-
-All methods use the unified `run_optimization` service:
-
-```python
-from services.portfolio_optimizer import run_optimization
-
-# Hybrid 3-stage pipeline (default)
-result = run_optimization(returns, covariance, objective='hybrid')
-
-# Classical methods
-result = run_optimization(returns, covariance, objective='markowitz')   # Max Sharpe
-result = run_optimization(returns, covariance, objective='min_variance')
-result = run_optimization(returns, covariance, objective='hrp')          # Hierarchical Risk Parity
-result = run_optimization(returns, covariance, objective='equal_weight') # 1/N baseline
-
-# Quantum-inspired
-result = run_optimization(returns, covariance, objective='qubo_sa')      # QUBO + Simulated Annealing
-result = run_optimization(returns, covariance, objective='vqe')         # VQE PauliTwoDesign
-result = run_optimization(returns, covariance, objective='target_return', target_return=0.10)
-
-print(f"Sharpe Ratio: {result.sharpe_ratio:.3f}")
-print(f"Volatility: {result.volatility:.3f}")
-```
+---
 
 ## API Endpoints
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
+|---|---|---|
 | `/api/health` | GET | Health check |
 | `/api/config/objectives` | GET | Available optimization objectives |
 | `/api/config/presets` | GET | Strategy presets |
@@ -130,7 +505,7 @@ print(f"Volatility: {result.volatility:.3f}")
 | `/api/jobs/optimize` | POST | Submit async optimization job |
 | `/metrics` | GET | Prometheus metrics |
 
-Example API call:
+Example:
 
 ```bash
 curl -X POST http://localhost:5000/api/portfolio/optimize \
@@ -142,144 +517,168 @@ curl -X POST http://localhost:5000/api/portfolio/optimize \
   }'
 ```
 
-## Project Structure
+Reference: [docs/API_REFERENCE.md](docs/API_REFERENCE.md).
 
-```
-quantum-hybrid-portfolio/
-├── api/                        # Flask REST API (entrypoint: api/app.py, run via `python -m api`)
-├── core/
-│   ├── portfolio_optimizer.py  # Unified run_optimization (hybrid, qubo_sa, vqe, qaoa, ...)
-│   ├── optimizers/             # equal_weight, markowitz, hrp, qubo_sa, vqe, qaoa, hybrid_pipeline
-│   ├── classical/              # Classical optimization helpers
-│   ├── quantum/                # Quantum primitives (Estimator/Sampler glue)
-│   ├── quantum_inspired/       # QAOA, VQE risk, quantum walks, annealing, Braket backend
-│   └── orchestrator/           # End-to-end pipeline orchestration
-├── methods/                    # Optimizer implementations (HRP, QUBO-SA, VQE, QAOA, hybrid)
-├── services/                   # Business logic: portfolio_optimizer, backtest, market data
-│                               # (Tiingo via data_provider_v2), IBM Quantum, report generator
-├── web/                        # Next.js dashboard (PRIMARY UI; `scripts/run-next-web.sh`, port 3042)
-├── frontend/                   # CRA dashboard (legacy reference; port 3000)
-├── deps/                       # Python requirements manifests — see deps/README.md
-├── deploy/docker/              # Dockerfiles + compose stack — see deploy/docker/README.md
-├── scripts/                    # Operator scripts (dev.sh, run-next-web.sh, deploy_hf_spaces.sh, ...)
-├── config/                     # Application config (api_config.py, presets, settings)
-├── configs/                    # Externalized run/experiment configs
-├── data/                       # Sample CSV/Parquet; SQLite tenant DB when local
-├── examples/                   # Code examples
-├── tests/                      # Pytest test suite
-├── benchmarks/                 # Performance benchmarks
-├── notebooks/                  # Research walkthroughs (e.g. notebooks/test.ipynb for IBM Quantum)
-├── templates/                  # Jinja2 templates for PDF reports (report.html, report.css)
-├── legacy/                     # Archived deprecated stack — see legacy/README.md
-└── docs/                       # Documentation — see docs/README.md and docs/DOCUMENTATION_INDEX.md
-```
-
-Top-level entrypoints / config: `serve_hf.py` (HF Space), `api_config_patch.py` (objectives + presets catalog), `pyproject.toml`, `vercel.json`, `fly.toml`, `AGENTS.md`.
+---
 
 ## Configuration
 
-Key environment variables (see `.env.example`):
-
 | Variable | Default | Description |
-|----------|---------|-------------|
+|---|---|---|
 | `FLASK_ENV` | production | Environment mode |
 | `LOG_LEVEL` | INFO | Logging level |
 | `API_KEY` | (none) | API key for authentication |
 | `API_KEY_REQUIRED` | false | Require API key |
-| `DATABASE_URL` | (sqlite) | Database connection |
-| `REDIS_HOST` | localhost | Redis for rate limiting |
+| `API_DB_PATH` | `data/api.sqlite3` | SQLite path for tenants and runs |
+| `DATA_PROVIDER` | tiingo if key set | Market data provider |
+| `TIINGO_API_KEY` | (none) | Tiingo API key |
+| `CORS_ORIGINS` | `http://localhost:3000` | Allowed browser origins |
 | `CACHE_TTL` | 3600 | Market data cache TTL |
 | `AWS_REGION` | us-east-1 | AWS region for Braket |
 | `BRAKET_DEVICE_ARN` | (none) | Braket device ARN |
 
+See `.env.example` for the full list.
+
+---
+
+## Evaluation
+
+Evaluation spans automated tests, QOBLIB benchmarks, and UI-driven simulations.
+
+| Channel | Purpose |
+|---|---|
+| `pytest tests/` | Unit and integration coverage for `core`, `services`, `api` |
+| QOBLIB harness | Six solvers, fixture instances, JSON/CSV/Markdown artifacts |
+| Portfolio Lab | Sensitivity sweeps, stress tests, walk-forward tabs |
+| PDF export | WeasyPrint reports (local / Fly.io; not Vercel serverless) |
+
+Generated chart assets (when present) live under [docs/assets/](docs/assets/README.md). Do not reference assets until they exist.
+
+QOBLIB details: [docs/QOBLIB_IBM_RUNTIME.md](docs/QOBLIB_IBM_RUNTIME.md), [docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md](docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md).
+
+---
+
 ## Testing
 
 ```bash
-# Run all tests
 pytest tests/
-
-# Run specific test file
 pytest tests/test_api_integration.py
-
-# Run with coverage
 pytest --cov=core --cov=services tests/
 ```
+
+CI mirrors `.github/workflows/ci.yml` (Python 3.11/3.12 + Next lint/build).
+
+---
 
 ## Docker Deployment
 
 ```bash
-# Build and run with Docker Compose (compose file under deploy/docker/)
 docker compose -f deploy/docker/docker-compose.yml up -d
-
-# Access services
 # API: http://localhost:5000
 # Frontend: http://localhost:80
 # Prometheus: http://localhost:9090
 ```
 
-## Roadmap
+Deploy guides: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/FLY_DEPLOY.md](docs/FLY_DEPLOY.md), [docs/VERCEL_TWO_PROJECTS.md](docs/VERCEL_TWO_PROJECTS.md), [docs/HUGGINGFACE_SPACES.md](docs/HUGGINGFACE_SPACES.md).
 
-Detailed log of the May 2026 overhaul: **[docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md](docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md)**.
+---
+
+## Current Phase
+
+Detailed May 2026 overhaul log: [docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md](docs/PORTFOLIO_LAB_QOBLIB_OVERHAUL.md).
 
 ### Phase 1 — Optimizer Foundations (Complete)
-- [x] Hybrid 3-stage pipeline + QUBO-SA, VQE, QAOA, HRP, Markowitz, equal-weight, target-return
-- [x] Unified `services.portfolio_optimizer.run_optimization` entry point
-- [x] Legacy objective mapping (`max_sharpe→markowitz`, `risk_parity→hrp`)
-- [x] CRA dashboard (`frontend/`) and Next.js dashboard (`web/`)
-- [x] Repo restructure: `deps/`, `deploy/docker/`, `legacy/` + structured docs (May 2026)
 
-### Phase 2 — Portfolio Lab + QOBLIB Overhaul (Complete, May 2026)
-- [x] Tiingo market data with `historical` / `live` / `synthetic` modes
-- [x] 250-asset curated universe + user-saved universes (Browse & Apply)
-- [x] Market regime → optimizer integration (`REGIME_OPTIMIZER_PARAMS`) + auto-detect via `GET /api/market/regime`
-- [x] Portfolio book accuracy: `capital`, `dollar_holdings`, P&L, optimizer-provenance card
-- [x] Sensitivity page: dynamic objectives, sweep config snapshot, stale-config chip, manual run button
-- [x] QOBLIB benchmarking layer (`benchmarks/qoblib/`): six solvers (classical, heuristic, qaoa_sim, hybrid_router, ibm_quantum strict, auto), fixture instance, JSON/CSV/Markdown artifacts
-- [x] Simulations page 4-tab layout (Strategy / Stress / Walk-Forward / QOBLIB)
-- [x] WeasyPrint PDF report export with hardened pre-flight errors
+- Hybrid 3-stage pipeline, QUBO-SA, VQE, QAOA, HRP, Markowitz, equal-weight, target-return
+- Unified `services.portfolio_optimizer.run_optimization`
+- CRA (`frontend/`) and Next.js (`web/`) dashboards
+- Repo restructure: `deps/`, `deploy/docker/`, `legacy/`
 
-### Phase 3 — Active Gaps (priority-ordered, from QOBLIB overhaul §"Known Gaps")
-- [x] **High:** QOBLIB IBM Quantum adapter v1 (`run_qoblib_benchmark_sampler`, tenant-threaded `qoblib/run`; metadata + caps — see **`docs/QOBLIB_IBM_RUNTIME.md`**); full constrained QAOA/QUBO deferred
-- [ ] **High:** Tiingo error surfacing + synthetic-mode fallback banner
-- [ ] **Medium:** `GET /api/reports/capabilities` PDF pre-flight endpoint (avoid post-click failure)
-- [x] **Medium:** `POST /api/portfolio/sensitivity-sweep` (parallel Python grid; Portfolio Lab heatmap uses server path)
-- [x] **Medium:** QAOA-sim fixture regression + `GET /api/simulations/qoblib/validate` (`persist=False` harness; `qaoa_sim` → `qaoa_sim_solver` with heuristic fallback)
-- [x] **Low:** Per-card `[Stale]` badges on Portfolio book (API snapshot retained; no blanket `apiResult` clear on param change)
-- [ ] **Low:** localStorage size guard on saved universes
-- [ ] **Low:** Distinguish auth-error vs. data-error in regime auto-detect
-- [x] **Low:** QOBLIB run list from `results/qoblib/results.csv` (newest first); full run JSON under `results/qoblib/runs/{run_id}.json`; `GET /api/simulations/qoblib/runs` and `GET .../runs/<run_id>` require `X-API-Key` (`@require_api_key`); Next tab uses `flaskProxyFetchHeaders()` for fetch/export
-- [ ] **Low:** OS-aware `scripts/install_pdf_deps.sh` for WeasyPrint native libs
+### Phase 2 — Portfolio Lab + QOBLIB Overhaul (Complete)
 
-### Phase 4 — Research Modules (implemented; not yet wired into Lab/QOBLIB)
-- [ ] Quantum linear-algebra routines — `core/quantum_inspired/quantum_linear_algebra.py` (HHL, quantum eigvals, qiskit-based)
-- [ ] Quantum ML — `core/quantum_inspired/quantum_ml.py` (PennyLane kernels, variational classifiers)
-- [ ] Expose either via `/api` and Lab UI surfaces, plus benchmark coverage in QOBLIB
-- [ ] TensorFlow Quantum integration (not yet started)
+- Tiingo market data; 250-asset universe; regime → optimizer integration
+- Portfolio book accuracy, sensitivity page, QOBLIB benchmarking layer
+- Simulations 4-tab layout; WeasyPrint PDF export
 
-## Research Basis
+### Phase 3 — Active Gaps
 
-This implementation is based on:
+- [x] QOBLIB IBM Quantum adapter v1
+- [ ] Tiingo error surfacing + synthetic-mode fallback banner
+- [ ] `GET /api/reports/capabilities` PDF pre-flight endpoint
+- [x] `POST /api/portfolio/sensitivity-sweep`
+- [x] QAOA-sim fixture regression + validate harness
+- [x] Per-card stale badges on Portfolio book
+- [ ] localStorage size guard on saved universes
+- [ ] Distinguish auth-error vs data-error in regime auto-detect
+- [x] QOBLIB run list from `results/qoblib/results.csv`
+- [ ] OS-aware `scripts/install_pdf_deps.sh` for WeasyPrint
 
-- **Buonaiuto/Herman (2025)** — 3-Stage Hybrid Pipeline for portfolio optimization
-- **López de Prado (2016)** — Hierarchical Risk Parity (SSRN 2708678)
-- **Farhi et al. (2014)** — Quantum Approximate Optimization Algorithm (QAOA)
-- **Peruzzo et al. (2014)** — Variational Quantum Eigensolver (VQE)
+### Phase 4 — Research Modules (not yet wired into Lab/QOBLIB)
+
+- [ ] Quantum linear algebra (`core/quantum_inspired/quantum_linear_algebra.py`)
+- [ ] Quantum ML (`core/quantum_inspired/quantum_ml.py`)
+- [ ] TensorFlow Quantum integration
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | Install, run API, run dashboard, troubleshooting |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture (extended) |
+| [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md) | Scripts, methods, DB layout |
+| [docs/API_REFERENCE.md](docs/API_REFERENCE.md) | API reference |
+| [docs/DASHBOARD_GUIDE.md](docs/DASHBOARD_GUIDE.md) | Dashboard user guide |
+| [docs/PUBLIC_DEMO.md](docs/PUBLIC_DEMO.md) | Public demo and disclaimers |
+| [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) | Full documentation index |
+| [examples/](examples/) | Code examples |
+
+---
+
+## Visual Reference
+
+| Visual | Section |
+|---|---|
+| Architecture | [Architecture](#architecture) |
+| Pipeline | [Core Pipeline](#core-pipeline) |
+| Runtime sequence | [Runtime Flow](#runtime-flow) |
+| Decision states | [Decision States](#decision-states) |
+| Data model | [Data Model](#data-model) |
+| Package boundaries | [Package Boundaries](#package-boundaries) |
+| Repository layout | [Repository Layout](#repository-layout) |
+| Strategy timeline | [Strategy Evolution](#strategy-evolution) |
+| Generated charts | [Evaluation](#evaluation) |
+
+Extended diagrams belong in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/assets/](docs/assets/README.md) when README grows too long.
+
+---
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Commit your changes
+4. Push and open a Pull Request
+
+---
+
+## Research Basis
+
+- **Buonaiuto/Herman (2025)** — 3-stage hybrid pipeline
+- **López de Prado (2016)** — Hierarchical Risk Parity
+- **Farhi et al. (2014)** — QAOA
+- **Peruzzo et al. (2014)** — VQE
+
+---
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
+
+---
 
 ## Citation
-
-If you use this software in your research, please cite:
 
 ```bibtex
 @software{quantum_hybrid_portfolio,
@@ -290,8 +689,10 @@ If you use this software in your research, please cite:
 }
 ```
 
+---
+
 ## Support
 
 - **Documentation:** [docs/](docs/)
 - **Issues:** [GitHub Issues](https://github.com/Quantum-Global-Group/quantum-hybrid-portfolio/issues)
-- **API Guide:** [docs/API_PRODUCT_GUIDE.md](docs/API_PRODUCT_GUIDE.md)
+- **API guide:** [docs/API_PRODUCT_GUIDE.md](docs/API_PRODUCT_GUIDE.md)
