@@ -67,7 +67,7 @@ function PrintSummary({ report }: { report: Record<string, unknown> }) {
   return (
     <div className="text-black space-y-4 text-sm leading-relaxed">
       <header>
-        <h1 className="text-xl font-bold">Quantum Ledger — Report</h1>
+        <h1 className="text-xl font-bold">Quantum Workforce Development — Report</h1>
         <p className="text-gray-600">
           {typeof report.generated_at === "string"
             ? new Date(report.generated_at).toLocaleString()

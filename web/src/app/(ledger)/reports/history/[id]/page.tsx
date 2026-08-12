@@ -167,7 +167,7 @@ export default function BrowserRunDetailPage(props: NextClientPagePropsWithId) {
     <div className="p-6 lg:p-10 max-w-4xl mx-auto space-y-8 print:p-8 print:max-w-none">
       {/* Print-only identity header — full self-contained metadata for PDF */}
       <div className="hidden print:block text-black space-y-2 border-b border-gray-300 pb-4 mb-2">
-        <h1 className="text-xl font-bold">Quantum Ledger — Optimization Run</h1>
+        <h1 className="text-xl font-bold">Quantum Workforce Development — Optimization Run</h1>
         <p className="text-gray-600 text-sm">{formatOptimizationSource(run.source)} · {new Date(run.at).toLocaleString()}</p>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mt-2">
           <dt className="font-semibold">Objective</dt>

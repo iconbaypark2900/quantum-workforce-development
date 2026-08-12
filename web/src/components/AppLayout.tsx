@@ -173,16 +173,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               className={`block no-underline text-inherit hover:opacity-95 transition-opacity min-w-0 ${
                 sidebarCollapsed ? "text-center" : ""
               }`}
-              title={sidebarCollapsed ? "Quantum Ledger · Dashboard" : undefined}
+              title={sidebarCollapsed ? "Quantum Workforce Development · Dashboard" : undefined}
             >
               {sidebarCollapsed ? (
                 <span className="font-headline text-ql-primary text-lg font-bold tracking-tighter block">
-                  QL
+                  QWD
                 </span>
               ) : (
                 <>
                   <h1 className="font-headline text-ql-primary text-lg font-bold tracking-tighter">
-                    Quantum Ledger
+                    Quantum Workforce Development
                   </h1>
                   <p className="text-ql-on-surface-variant text-[10px] uppercase tracking-widest mt-1">
                     v1.0 Active

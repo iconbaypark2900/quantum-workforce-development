@@ -246,7 +246,7 @@ export default function DashboardPage(props: NextClientPageProps) {
       id: "boot",
       type: "system",
       title: "System Online",
-      detail: "Quantum Ledger initialized. API connection established.",
+      detail: "Quantum Workforce Development initialized. API connection established.",
       time: "just now",
       icon: "task_alt",
       iconColor: "text-ql-tertiary",
@@ -386,7 +386,7 @@ export default function DashboardPage(props: NextClientPageProps) {
       <section className="border-b border-ql-outline-variant pb-8 space-y-6 min-w-0">
         <LedgerPageHeader
           title="Executive Dashboard"
-          subtitle="Quantum Ledger — session-aware optimize, live KPIs, holdings, and workspace shortcuts."
+          subtitle="Quantum Workforce Development — session-aware optimize, live KPIs, holdings, and workspace shortcuts."
           primaryAction={
             <button
               type="button"

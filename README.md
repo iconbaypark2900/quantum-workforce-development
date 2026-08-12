@@ -1,5 +1,5 @@
 ---
-title: Quantum Portfolio Lab
+title: Quantum Workforce Development
 emoji: 📊
 colorFrom: blue
 colorTo: purple
@@ -7,12 +7,12 @@ sdk: docker
 app_port: 7860
 ---
 
-# Quantum Hybrid Portfolio
+# Quantum Workforce Development
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Quantum-inspired portfolio optimization running on classical hardware.**
+**Quantum Workforce Development** — quantum-inspired portfolio optimization running on classical hardware.
 
 This project implements quantum-inspired portfolio optimization: hybrid pipelines, QUBO+SA, VQE, and classical methods, delivering robust allocations without requiring quantum hardware.
 
