@@ -1,32 +1,45 @@
 # Quantum workforce curriculum
 
-Public site (this repo’s Next app): **`/learn`**
+## GitHub or the company website?
+
+**Both, with different jobs.**
+
+| Place | Who it is for | What lives there |
+|-------|----------------|------------------|
+| **Company website (`/learn`)** | Learners, WISER, employers | Readiness Track, roles/hiring, pathway, courses, classroom, events |
+| **This GitHub repo** | Facilitators, partners, version control | Syllabi, rubrics, reference PDFs, source for the site |
+
+Do not put the learner experience only on GitHub — mixed-background cohorts will not clone a repo to find where they fit. Do not put only a pretty site with no repo — WISER and IBM Classroom need a citable packet.
+
+Public for learners = **deploy the Next `web/` app** so `https://<your-web-host>/learn` resolves. Merging this branch is not the same as a production deploy (`./scripts/vercel-deploy-web.sh` or Fly per `docs/FLY_DEPLOY.md`).
+
+## Live routes
 
 | Path | What it is |
 |------|------------|
-| [`/learn`](../../web/src/app/(learn)/learn/page.tsx) | Program home |
-| [`/learn/readiness`](../../web/src/app/(learn)/learn/readiness/page.tsx) | Quantum Readiness Track (SME-fit assessment) |
-| [`/learn/courses`](../../web/src/app/(learn)/learn/courses/page.tsx) | Four-course index |
-| [`/learn/courses/[slug]`](../../web/src/app/(learn)/learn/courses/[slug]/page.tsx) | Week syllabi |
-| [`/learn/glossary`](../../web/src/app/(learn)/learn/glossary/page.tsx) | Primary vocabulary |
-| [`/learn/baseline`](../../web/src/app/(learn)/learn/baseline/page.tsx) | Classical → quantum lab steps |
-
-Scoring and content live in [`web/src/lib/curriculum/`](../../web/src/lib/curriculum/).
+| `/learn` | Program home |
+| `/learn/readiness` | SME-fit Readiness Track |
+| `/learn/roles` | Role families, skills, example employers |
+| `/learn/pathway` | Ecosystem one-pager (university vs industry) |
+| `/learn/courses` | Four-week syllabi |
+| `/learn/glossary` | Vocabulary |
+| `/learn/baseline` | Classical → quantum lab |
+| `/learn/classroom` | IBM Classroom, Black Opal, Enigmas, Qulture lessons, PDFs |
+| `/learn/next` | Hubs, LinkedIn, Fall Fest, Summer School, C1000-179, Advocate |
 
 ## Documents for WISER
 
 | File | Use |
 |------|-----|
-| [WISER_SUBMISSION.md](WISER_SUBMISSION.md) | **Send this.** Cover letter, program design, four syllabi, calendar, outcomes. |
-| [WEEKLY_CALENDAR.md](WEEKLY_CALENDAR.md) | Facilitator week-by-week schedule |
-| [ASSESSMENT_AND_RUBRICS.md](ASSESSMENT_AND_RUBRICS.md) | Deliverables and scoring |
-| [PARTNER_ATTRIBUTIONS.md](PARTNER_ATTRIBUTIONS.md) | Qolour, IBM, WISER alignment, what QGG owns |
+| [WISER_SUBMISSION.md](WISER_SUBMISSION.md) | **Send this.** |
+| [WEEKLY_CALENDAR.md](WEEKLY_CALENDAR.md) | Facilitator calendar |
+| [ASSESSMENT_AND_RUBRICS.md](ASSESSMENT_AND_RUBRICS.md) | Rubrics |
+| [PARTNER_ATTRIBUTIONS.md](PARTNER_ATTRIBUTIONS.md) | Partners |
+| [references/README.md](references/README.md) | PDFs / PPTX inventory |
 
 ## Local preview
 
 ```bash
-cd web && npm install
-# from repo root:
 ./scripts/run-next-web.sh
-# open http://localhost:3042/learn
+# http://localhost:3042/learn
 ```

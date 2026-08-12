@@ -6,10 +6,11 @@ import { type ReactNode } from "react";
 
 const NAV = [
   { href: "/learn", label: "Program" },
-  { href: "/learn/readiness", label: "Readiness Track" },
-  { href: "/learn/courses", label: "Four Courses" },
-  { href: "/learn/glossary", label: "Vocabulary" },
-  { href: "/learn/baseline", label: "Classical Baseline" },
+  { href: "/learn/readiness", label: "Readiness" },
+  { href: "/learn/roles", label: "Roles" },
+  { href: "/learn/courses", label: "Courses" },
+  { href: "/learn/classroom", label: "Classroom" },
+  { href: "/learn/next", label: "Next steps" },
 ];
 
 export default function LearnShell({ children }: { children: ReactNode }) {
@@ -60,16 +61,24 @@ export default function LearnShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-ql-outline-variant px-4 py-8 text-sm text-ql-on-surface-variant sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            Workforce curriculum for WISER · partners:{" "}
+            Workforce curriculum ·{" "}
             <a href="https://www.qolour.io/" className="text-ql-primary">
               Qolour
+            </a>
+            {" · "}
+            <a href="https://q-ctrl.com/black-opal" className="text-ql-primary">
+              Black Opal
             </a>
             {" · "}
             <a
               href="https://quantum.cloud.ibm.com/learning/courses/quantum-business-foundations"
               className="text-ql-primary"
             >
-              IBM Quantum Business Foundations
+              IBM
+            </a>
+            {" · "}
+            <a href="https://enigmesquantiques.com/en/" className="text-ql-primary">
+              Enigmas
             </a>
           </p>
           <p>Documentation: docs/curriculum/</p>

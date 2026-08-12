@@ -25,10 +25,16 @@ export default function LearnHomePage() {
             Take the Readiness Track
           </Link>
           <Link
-            href="/learn/courses"
+            href="/learn/roles"
             className="rounded-lg border border-ql-outline-variant px-5 py-2.5 text-sm font-medium text-ql-on-surface no-underline"
           >
-            Four-course syllabus
+            Roles and hiring
+          </Link>
+          <Link
+            href="/learn/next"
+            className="rounded-lg border border-ql-outline-variant px-5 py-2.5 text-sm font-medium text-ql-on-surface no-underline"
+          >
+            Events and certs
           </Link>
         </div>
       </section>
@@ -36,10 +42,10 @@ export default function LearnHomePage() {
       <section>
         <h2 className="font-headline text-2xl font-bold text-ql-on-surface">The month</h2>
         <p className="mt-2 max-w-3xl text-sm text-ql-on-surface-variant">
-          Four courses, one per week. Course 1 is the placement tool that already existed as a
-          concept — now it lives on this site. Course 2 is Qolour’s qubit workshops. Course 3 is
-          IBM Quantum Business Foundations. Course 4 locks vocabulary and the classical-baseline
-          habit using the Portfolio Lab.
+          Four courses, one per week. Then roles, regional hubs, LinkedIn, hackathons, Qiskit
+          Summer School and Fall Fest, the C1000-179 developer cert, and the Advocate program.
+          Week 2 now includes Qolour, Q-CTRL Black Opal, and IBM Classroom hardware. Week 3 adds
+          Quantum Enigmas and the PQC vs QKD case file.
         </p>
         <ol className="mt-6 grid gap-4 md:grid-cols-2">
           {COURSES.map((course) => (
@@ -72,15 +78,16 @@ export default function LearnHomePage() {
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {PATHWAY_LIST.map((pathway) => (
-            <article
+            <Link
               key={pathway.id}
-              className="rounded-xl border border-ql-outline-variant bg-ql-surface-low p-4"
+              href={`/learn/roles#${pathway.id}`}
+              className="rounded-xl border border-ql-outline-variant bg-ql-surface-low p-4 no-underline hover:border-ql-primary"
             >
               <h3 className="font-headline text-base font-bold text-ql-on-surface">
                 {pathway.shortName}
               </h3>
               <p className="mt-2 text-sm text-ql-on-surface-variant">{pathway.tagline}</p>
-            </article>
+            </Link>
           ))}
         </div>
       </section>

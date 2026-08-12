@@ -173,7 +173,19 @@ This matches how mixed-industry pre-apprenticeship cohorts actually run: profess
 - If useful, slot Qolour and IBM as named week partners rather than generic “guest content.”  
 - Use week 4’s baseline discipline as a shared bar for applied projects in later WISER programs.
 
-## 9. Author note
+## 9. After the month (same site)
+
+Once the Track names a pathway:
+
+1. **Roles and hiring** (`/learn/roles`) — titles, skill sets, example employers.  
+2. **Ecosystem fork** (`/learn/pathway`) — university vs industry (QGG one-pager).  
+3. **Hubs** — Miami, Chattanooga, WISER/DC, IBM virtual Classroom.  
+4. **LinkedIn** — pathway headline + artifacts, not “quantum enthusiast.”  
+5. **Projects** — Qiskit Fall Fest, Global Summer School, hackathons.  
+6. **Credentials** — Business Foundations (week 3), then C1000-179, then Qiskit Advocate.  
+7. **Classroom stack** — IBM Classroom Account (QGG approved), Q-CTRL Black Opal, Quantum Enigmas, Quantum for the Qulture lessons.
+
+## 10. Author note
 
 Kevin Robinson — IBM Qiskit Advocate; IBM Quantum Center HBCU mentor; Quantum Learning Guide, Chattanooga Quantum Collaborative Quantum Ready pre-apprenticeship; founder, Progression’s U STEAM Academy. This month is the curriculum form of work already done with mixed-background professionals: place them, teach the qubit, teach the business, then demand a baseline.
 

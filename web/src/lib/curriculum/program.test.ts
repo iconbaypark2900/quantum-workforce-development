@@ -30,4 +30,15 @@ describe("curriculum catalog", () => {
     expect(new Set(terms).size).toBe(terms.length);
     expect(terms.length).toBeGreaterThanOrEqual(24);
   });
+
+  it("maps eight role families and Qulture lessons", async () => {
+    const { ROLE_FAMILIES } = await import("./roles");
+    const { QULTURE_LESSONS } = await import("./qulture");
+    const { OPPORTUNITIES } = await import("./nextSteps");
+    expect(ROLE_FAMILIES).toHaveLength(8);
+    expect(QULTURE_LESSONS.length).toBeGreaterThanOrEqual(12);
+    expect(OPPORTUNITIES.some((o) => o.id === "advocate")).toBe(true);
+    expect(OPPORTUNITIES.some((o) => o.id === "black-opal")).toBe(true);
+    expect(OPPORTUNITIES.some((o) => o.id === "enigmas")).toBe(true);
+  });
 });

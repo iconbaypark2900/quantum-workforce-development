@@ -52,6 +52,8 @@ export const COURSES: Course[] = [
         ],
         activities: [
           "Complete /learn/readiness.",
+          "Open /learn/roles for that pathway — titles, skills, example employers.",
+          "Read /learn/pathway (ecosystem one-pager: university vs industry).",
           "Save or screenshot the result card for the cohort folder.",
         ],
       },
@@ -79,7 +81,7 @@ export const COURSES: Course[] = [
     code: "QR-2",
     title: "Qubit Fundamentals — Superposition, Entanglement, Interference, Circuits",
     subtitle: "Hands-on intuition before formalism.",
-    partner: "Qolour",
+    partner: "Qolour · Q-CTRL Black Opal · IQM cheat sheet",
     partnerUrl: "https://www.qolour.io/",
     hours: "6–8 hours",
     format: "Qolour / Qubi workshop + guided course chapters + circuit lab",
@@ -103,6 +105,7 @@ export const COURSES: Course[] = [
         ],
         activities: [
           "Qolour Qubi course: 1.1–1.4 (what is quantum, measurement, qubit, math of a qubit).",
+          "Q-CTRL Black Opal: Superposition, Qubits, Measurement modules.",
           "Workshop game: discover the rules by play, not lecture.",
         ],
       },
@@ -127,7 +130,9 @@ export const COURSES: Course[] = [
         ],
         activities: [
           "Qubi course: 3.1, 3.3, 3.4 plus gate explainers (H, X, Z, CNOT, measurement).",
-          "Optional: build the same tiny circuit in a simulator after the physical model.",
+          "IQM circuit-magicians cheat sheet (CC-BY-SA) as the gate wall chart.",
+          "Quantum Enigmas 001 (treasure door) or Black Opal Circuits module.",
+          "Optional: run the same tiny circuit on IBM hardware via the Classroom Account.",
         ],
       },
     ],
@@ -176,6 +181,8 @@ export const COURSES: Course[] = [
         activities: [
           "IBM lessons: Quantum computing fundamentals; Quantum technology; Business impacts.",
           "Seminar: financial services, optimization, chemistry — what is real now.",
+          "Security-track add-on: PQC vs QKD one-pager (QRC Module 4).",
+          "Optional: one Quantum Enigma video + SkillsBuild quiz.",
         ],
       },
       {
@@ -253,6 +260,18 @@ export const COURSES: Course[] = [
           "Portfolio Lab: classical objective vs QUBO+SA / VQE / QAOA path (simulator is enough).",
           "Fill the benchmark table: metric, runtime, feasibility, notes on noise.",
           "Office hours: “is this a good use case or a demo?”",
+        ],
+      },
+      {
+        title: "Where you go next",
+        duration: "45 min",
+        outcomes: [
+          "Pick one regional hub and one public project (hackathon, Fall Fest, or GitHub).",
+          "Know the C1000-179 and Advocate gates if you are on a software/algorithms path.",
+        ],
+        activities: [
+          "Complete /learn/next: LinkedIn headline, hub, and one event.",
+          "Software track: skim C1000-179 objective map; schedule the assessment exam after the month.",
         ],
       },
     ],

@@ -10,6 +10,33 @@ This month is a **curated pathway**, not a claim that Quantum Global Group autho
 - Week 4 vocabulary list as *assessed* lexicon (definitions are standard; the bar is QGG’s)  
 - Classical-baseline lab design and the Portfolio Lab worked example  
 - WISER submission packet and `/learn` implementation in this repository  
+- Quantum for the Qulture lesson sequence (bitstrings → variational / Max-Cut)  
+- Ecosystem pathway one-pager (university vs industry)  
+- PQC vs QKD Quantum Ready Cohort case file  
+
+## Q-CTRL Black Opal — [q-ctrl.com/black-opal](https://q-ctrl.com/black-opal)
+
+Used in **week 2** as the interactive practice layer (superposition, qubits, entanglement, circuits, noise, programming). Q-CTRL owns the product. QGG assigns modules; it does not scrape Black Opal content.
+
+## Quantum Enigmas — [enigmesquantiques.com](https://enigmesquantiques.com/en/)
+
+Institut quantique (Université de Sherbrooke) + IBM SkillsBuild puzzles, with optional Qiskit coding labs. Assigned as practice, not rewritten.
+
+## IQM cheat sheet
+
+[IQM](https://meetiqm.com/) “Cheat sheet for circuit magicians,” **CC-BY-SA**. Hosted at `/learn/references/IQM-Cheat-Sheet-for-Circuit-Magicians.pdf` with credit to academy@meetiqm.com.
+
+## IBM Quantum — Classroom, Business Foundations, cert, Advocate
+
+- [Classroom Accounts](https://quantum.cloud.ibm.com/docs/en/guides/classroom-accounts) — QGG is approved; students get Open Plan QPU time without credit cards  
+- [Quantum Business Foundations](https://quantum.cloud.ibm.com/learning/courses/quantum-business-foundations) — week 3  
+- [Qiskit v2.X developer certification (C1000-179)](https://www.ibm.com/quantum/blog/qiskit-v2x-developer-certification) — after the month for software/algorithms  
+- [Qiskit Advocate Program](https://www.ibm.com/quantum/blog/qiskit-advocate-program) — year-round; cert required past Tier 0  
+- [Fall Fest](https://www.ibm.com/quantum/blog/qiskit-fall-fest-2026) and [Global Summer School](https://www.ibm.com/quantum/blog/qiskit-summer-school-2026)
+
+The C1000-179 study guide PDF is **facilitator-only** (`docs/curriculum/references/ibm/`). Do not put it on the public download path.
+
+IBM owns those courses, exams, and badges. Learners use IBM’s platforms.
 
 ## Qolour — [qolour.io](https://www.qolour.io/)
 

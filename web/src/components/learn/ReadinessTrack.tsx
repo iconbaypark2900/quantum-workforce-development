@@ -262,16 +262,22 @@ function ResultPanel({
 
       <div className="flex flex-wrap gap-3 pt-2">
         <Link
-          href="/learn/courses/quantum-readiness"
+          href={`/learn/roles#${primaryId}`}
           className="rounded-lg bg-ql-primary px-4 py-2 text-sm font-semibold text-ql-on-primary no-underline"
         >
-          Open week 1 syllabus
+          See roles and who hires
         </Link>
         <Link
-          href="/learn/courses"
+          href="/learn/next"
           className="rounded-lg border border-ql-outline-variant px-4 py-2 text-sm font-medium text-ql-on-surface no-underline"
         >
-          See all four courses
+          Locations, LinkedIn, events
+        </Link>
+        <Link
+          href="/learn/pathway"
+          className="rounded-lg border border-ql-outline-variant px-4 py-2 text-sm font-medium text-ql-on-surface no-underline"
+        >
+          Ecosystem pathway
         </Link>
       </div>
     </section>
