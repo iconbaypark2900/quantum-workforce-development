@@ -309,6 +309,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </span>
               {!sidebarCollapsed ? <span>PL</span> : null}
             </Link>
+            <Link
+              href="/learn"
+              title="Workforce curriculum"
+              className={`flex items-center text-ql-on-surface-variant hover:text-ql-on-surface transition-colors no-underline shrink-0 ${
+                sidebarCollapsed ? "justify-center p-1" : "gap-3 text-xs"
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm shrink-0">
+                school
+              </span>
+              {!sidebarCollapsed ? <span>Workforce</span> : null}
+            </Link>
             <a
               href="/api/docs/openapi"
               target="_blank"
