@@ -11,8 +11,9 @@
 
 Public for learners has two layers:
 
-1. **Career Navigator (today):** [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) is already a **public** repo. Turn on GitHub Pages (Settings → Pages → Deploy from a branch → `main` / `/` root). Live URL: [https://quantumkev.github.io/ibm-quantum-navigation/](https://quantumkev.github.io/ibm-quantum-navigation/). Same app is also at `/learn/navigator` once `web/` is deployed.
-2. **Full `/learn` month:** deploy the Next `web/` app (`./scripts/vercel-deploy-web.sh` or Fly per `docs/FLY_DEPLOY.md`). Merging this branch is not that deploy. The org repo `Quantum-Global-Group/quantum-hybrid-portfolio` is still **private** — WISER cannot open the packet on GitHub until someone with admin flips **Settings → General → Danger zone → Change repository visibility → Public**.
+1. **This GitHub repo (today):** [Quantum-Global-Group/quantum-hybrid-portfolio](https://github.com/Quantum-Global-Group/quantum-hybrid-portfolio) is **public**. Packet: [`docs/curriculum/WISER_SUBMISSION.md`](WISER_SUBMISSION.md). Until this branch is merged, send the PR: [pull/4](https://github.com/Quantum-Global-Group/quantum-hybrid-portfolio/pull/4).
+2. **Career Navigator:** [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) (public). GitHub Pages (Settings → Pages → `main` / root): [https://quantumkev.github.io/ibm-quantum-navigation/](https://quantumkev.github.io/ibm-quantum-navigation/). Same app at `/learn/navigator` once `web/` is deployed.
+3. **Full `/learn` month in a browser:** deploy the Next `web/` app (`./scripts/vercel-deploy-web.sh` or Fly per `docs/FLY_DEPLOY.md`). A public GitHub repo is not the same as `https://<host>/learn`.
 
 Do not put the learner experience only on GitHub — mixed-background cohorts will not clone a repo to find where they fit. Do not put only a pretty site with no repo — WISER and IBM Classroom need a citable packet.
 

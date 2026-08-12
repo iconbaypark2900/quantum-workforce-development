@@ -4,7 +4,7 @@
 **From:** Kevin Robinson, Quantum Global Group  
 **Role sought:** Quantum curriculum / workforce development  
 **Program length:** 4 weeks (one course per week) · 6–8 hours/week · ~28–34 hours total  
-**Live implementation:** Quantum Global Group site, `/learn` (this repository). **Public Navigator now:** [github.com/QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) · [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/)
+**Live implementation:** [github.com/Quantum-Global-Group/quantum-hybrid-portfolio](https://github.com/Quantum-Global-Group/quantum-hybrid-portfolio) (public) · `/learn` on the Quantum Global Group site after Next deploy. **Navigator:** [github.com/QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) · [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/)
 
 ---
 
