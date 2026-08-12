@@ -28,8 +28,8 @@ export const OPPORTUNITIES: Opportunity[] = [
     kind: "festival",
     when: "October–November each year (2026 host cycle: events Oct–Nov)",
     where: "Local campuses and communities worldwide — attend or host",
-    href: "https://www.ibm.com/quantum/blog/qiskit-fall-fest-2026",
-    who: "Students, educators, community leads; Miami Dade College has hosted",
+    href: "https://github.com/QuantumKev/qiskitFallFest",
+    who: "Students, educators, community leads. QGG workshop notebooks (Colab + IBMid) live in QuantumKev/qiskitFallFest.",
     pathways: "all",
   },
   {

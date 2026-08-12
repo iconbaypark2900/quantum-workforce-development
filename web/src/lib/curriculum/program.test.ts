@@ -41,4 +41,15 @@ describe("curriculum catalog", () => {
     expect(OPPORTUNITIES.some((o) => o.id === "black-opal")).toBe(true);
     expect(OPPORTUNITIES.some((o) => o.id === "enigmas")).toBe(true);
   });
+
+  it("points Course 1 at the public Career Navigator", async () => {
+    const { NAVIGATOR_HREF, NAVIGATION_REPO, COURSES: courses } = await import("./index");
+    expect(NAVIGATOR_HREF).toBe("/learn/navigator");
+    expect(NAVIGATION_REPO.href).toMatch(/ibm-quantum-navigation/);
+    const week1 = courses.find((c) => c.slug === "quantum-readiness");
+    expect(week1?.modules.some((m) => /Career Navigator/i.test(m.title))).toBe(true);
+    expect(week1?.modules.flatMap((m) => m.activities).some((a) => a.includes("/learn/navigator"))).toBe(
+      true,
+    );
+  });
 });

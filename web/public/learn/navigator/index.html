@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantum Career Navigator + Workforce Intelligence Engine</title>
+  <meta name="description" content="A workforce intelligence engine for the IBM Quantum ecosystem — connecting roles, learning, university programs, enterprise readiness, and workforce outcomes into personalized pathways." />
+  <base href="/learn/navigator/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="qgg-learn-bar">
+    <a href="/learn">← Quantum Readiness Month</a>
+    <span class="qgg-learn-bar-label">Career Navigator · Quantum Global Group</span>
+    <a href="https://github.com/QuantumKev/ibm-quantum-navigation">Source</a>
+  </div>
+
+  <nav class="site-nav" aria-label="Quantum Career Navigator">
+    <div class="site-nav-inner">
+      <a class="site-nav-brand" href="#top">
+        <span class="brand-mark" aria-hidden="true"></span>
+        IBM Quantum <span class="brand-sub">Career Navigator</span>
+      </a>
+      <ul class="site-nav-links">
+        <li><a href="#navigator">Navigator</a></li>
+        <li><a href="#board">Pathway</a></li>
+        <li><a href="#roles">Roles</a></li>
+        <li><a href="#forecast">Forecast</a></li>
+        <li><a href="#enterprise">Enterprise</a></li>
+        <li><a href="#kpis">Outcomes</a></li>
+      </ul>
+      <a class="nav-signin" href="https://quantum.cloud.ibm.com/" target="_blank" rel="noopener">Sign in to Platform</a>
+    </div>
+  </nav>
+
+  <!-- 1 · HERO -->
+  <header class="hero bird-bg bird-bg--right bird-bg--nighthawk" id="top">
+    <div class="hero-aurora" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <p class="hero-eyebrow">IBM Quantum · Workforce Intelligence</p>
+      <h1 class="hero-title">Quantum Career<br />Navigator</h1>
+      <p class="hero-subtitle">A workforce intelligence engine for the IBM Quantum ecosystem.</p>
+      <p class="hero-lead">
+        The Quantum Career Navigator connects IBM Quantum roles, learning pathways, university
+        programs, enterprise readiness, ecosystem projects, and workforce outcomes into one
+        <strong>personalized navigation system</strong>.
+      </p>
+      <p class="hero-positioning">Translate IBM's quantum roadmap into <strong>workforce pathways, curriculum pathways, and career pathways.</strong></p>
+
+      <div class="hero-callouts">
+        <div class="callout"><span class="callout-step">01</span><span class="callout-text">Discover roles</span></div>
+        <span class="callout-arrow" aria-hidden="true">→</span>
+        <div class="callout"><span class="callout-step">02</span><span class="callout-text">Build skills</span></div>
+        <span class="callout-arrow" aria-hidden="true">→</span>
+        <div class="callout"><span class="callout-step">03</span><span class="callout-text">Unlock opportunities</span></div>
+      </div>
+
+      <div class="hero-actions">
+        <a class="btn-primary" href="#navigator">Start navigating</a>
+        <button class="btn-ghost js-demo" type="button">Load example student "Quantum Kevin"</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2-5 · NAVIGATOR CONTROLS -->
+  <section class="navigator bird-bg bird-bg--left bird-bg--bluejay" id="navigator">
+    <div class="container">
+      <div class="navigator-head">
+        <p class="section-label">Build your journey</p>
+        <h2 class="section-title">What should you do next?</h2>
+        <p class="section-desc">The challenge is not a lack of quantum resources — it is knowing how to navigate the ecosystem, identify the right skills, and connect them to real opportunities. Tell the engine who you are, what you care about, and where you want to go.</p>
+      </div>
+
+      <div class="control-block" id="avatarBlock">
+        <div class="control-head">
+          <span class="control-step">Step 1</span>
+          <h3 class="control-title">Who are you?</h3>
+          <span class="control-hint" id="avatarHint">Pick the profile that fits you best</span>
+        </div>
+        <div class="option-grid option-grid--avatars" id="avatarGrid" role="radiogroup" aria-label="Who are you?"></div>
+      </div>
+
+      <div class="control-block" id="interestBlock">
+        <div class="control-head">
+          <span class="control-step">Step 2</span>
+          <h3 class="control-title">What are you interested in?</h3>
+          <span class="control-hint" id="interestHint">Where do you want to apply quantum?</span>
+        </div>
+        <div class="chip-row" id="interestRow" role="radiogroup" aria-label="What are you interested in?"></div>
+      </div>
+
+      <div class="control-block" id="goalBlock">
+        <div class="control-head">
+          <span class="control-step">Step 3</span>
+          <h3 class="control-title">What is your goal?</h3>
+          <span class="control-hint" id="goalHint">What outcome are you navigating toward?</span>
+        </div>
+        <div class="option-grid option-grid--goals" id="goalGrid" role="radiogroup" aria-label="What is your goal?"></div>
+      </div>
+
+      <div class="navigator-actions">
+        <button class="btn-primary btn-generate" type="button" id="generateBtn">Generate my quantum pathway</button>
+        <button class="btn-ghost" type="button" id="resetBtn">Reset</button>
+        <button class="btn-ghost js-demo" type="button">Load example student "Quantum Kevin"</button>
+        <p class="selection-summary" id="selectionSummary" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · DYNAMIC PATHWAY BOARD + SUMMARY -->
+  <section class="board scene-bg scene-bg--ecosystem" id="board">
+    <div class="container">
+      <div class="board-head">
+        <div>
+          <p class="section-label">Your game board</p>
+          <h2 class="section-title">Recommended quantum pathway</h2>
+        </div>
+        <div class="board-legend" id="boardLegend" hidden>
+          <span class="legend-item"><span class="legend-dot start"></span>Start</span>
+          <span class="legend-item"><span class="legend-dot learn"></span>Skill</span>
+          <span class="legend-item"><span class="legend-dot community"></span>Community</span>
+          <span class="legend-item"><span class="legend-dot project"></span>Project</span>
+          <span class="legend-item"><span class="legend-dot gate"></span>Gate</span>
+          <span class="legend-item"><span class="legend-dot outcome"></span>Outcome</span>
+        </div>
+      </div>
+
+      <div class="board-stage">
+        <div class="board-empty" id="boardEmpty">
+          <span class="board-empty-mark" aria-hidden="true"></span>
+          <h3>No pathway generated yet</h3>
+          <p>Choose your profile, interest, and goal above, then press <strong>Generate my quantum pathway</strong>. The board reveals a custom route of missions, skill unlocks, gates, and an outcome — with the resources, skills, badges, and opportunities you'll need.</p>
+          <button class="btn-ghost js-demo" type="button">Load example student "Quantum Kevin"</button>
+        </div>
+        <ol class="board-track" id="boardTrack" aria-live="polite"></ol>
+
+        <!-- Pathway summary -->
+        <div class="summary-panel" id="summaryPanel" hidden>
+          <div class="summary-grid">
+            <div class="summary-item"><p class="summary-label">Recommended IBM resources</p><div class="mini-tags" id="sumResources"></div></div>
+            <div class="summary-item"><p class="summary-label">Required skills</p><div class="mini-tags" id="sumSkills"></div></div>
+            <div class="summary-item"><p class="summary-label">Suggested badges &amp; credentials</p><div class="mini-tags" id="sumBadges"></div></div>
+            <div class="summary-item"><p class="summary-label">Suggested projects</p><div class="mini-tags" id="sumProjects"></div></div>
+            <div class="summary-item"><p class="summary-label">Community engagement</p><div class="mini-tags" id="sumCommunity"></div></div>
+            <div class="summary-item summary-item--target"><p class="summary-label">Opportunity target</p><p class="summary-target" id="sumOpportunity"></p><p class="summary-family" id="sumFamily"></p></div>
+          </div>
+
+          <div class="advisor-inline">
+            <div class="advisor-head">
+              <span class="view-icon" aria-hidden="true">A</span>
+              <div><h3 class="view-title">Advisor view</h3><p class="view-context" id="advisorContext">Select an avatar and goal to tailor this view.</p></div>
+            </div>
+            <ul class="view-list" id="advisorList"></ul>
+            <div class="next-action" id="nextAction">
+              <span class="next-action-label">Next best action</span>
+              <p class="next-action-text" id="nextActionText">Generate a pathway to reveal the single most important next move.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · ROLE FAMILIES -->
+  <section class="roles bird-bg bird-bg--right bird-bg--starling" id="roles">
+    <div class="container">
+      <p class="section-label">From IBM Careers</p>
+      <h2 class="section-title">IBM Quantum role families</h2>
+      <p class="section-desc">Current IBM Quantum roles organized into six families — each with the core skills and learning pathway that lead into it. This is the backbone that connects learning to real jobs.</p>
+      <div class="family-grid" id="familyGrid"></div>
+    </div>
+  </section>
+
+  <!-- 8 · ROLE-TO-SKILLS MAPPER -->
+  <section class="mapper" id="mapper">
+    <div class="container">
+      <p class="section-label">Interactive</p>
+      <h2 class="section-title">Role-to-skills mapper</h2>
+      <p class="section-desc">Select a target role family to map it to the skills, learning resources, badges, projects, opportunities, and best-fit profiles that lead into it.</p>
+      <div class="mapper-select" id="mapperSelect" role="tablist" aria-label="Role families"></div>
+      <div class="mapper-panel" id="mapperPanel" hidden></div>
+    </div>
+  </section>
+
+  <!-- 9 · WORKFORCE FORECAST -->
+  <section class="forecast bird-bg bird-bg--left bird-bg--falcon" id="forecast">
+    <div class="container">
+      <p class="section-label">Connect the roadmap to readiness</p>
+      <h2 class="section-title">1 · 2 · 3-year quantum workforce forecast</h2>
+      <p class="section-desc">Translate IBM's quantum roadmap and current hiring patterns into a staged plan for preparing talent.</p>
+      <div class="forecast-grid" id="forecastGrid"></div>
+    </div>
+  </section>
+
+  <!-- 10 · ENTERPRISE READINESS -->
+  <section class="enterprise bird-bg bird-bg--right bird-bg--heron" id="enterprise">
+    <div class="container">
+      <p class="section-label">For companies</p>
+      <h2 class="section-title">Enterprise quantum readiness assessment</h2>
+      <p class="section-desc">Companies need to know when they're quantum ready. Set your level in each category for a quick, directional read — then act on the recommendation.</p>
+
+      <div class="readiness-layout">
+        <div class="readiness-rows" id="readinessRows"></div>
+        <aside class="readiness-result">
+          <p class="readiness-result-label">Overall readiness</p>
+          <div class="readiness-meter"><span class="readiness-meter-fill" id="readinessMeterFill"></span></div>
+          <p class="readiness-score" id="readinessScore">—</p>
+          <p class="readiness-verdict" id="readinessVerdict"></p>
+          <p class="readiness-rec-label">Recommended next step</p>
+          <p class="readiness-rec" id="readinessRec"></p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · QUANTUM TEAM BUILDER -->
+  <section class="team" id="team">
+    <div class="container">
+      <p class="section-label">Quantum work is team-based</p>
+      <h2 class="section-title">Build the quantum team</h2>
+      <p class="section-desc">Before building curriculum, understand the team required to solve a real quantum business problem. Quantum work is not only for physicists — it takes a cross-functional team.</p>
+
+      <div class="scenario-select" id="scenarioSelect" aria-label="Scenario"></div>
+      <p class="scenario-context" id="scenarioContext"></p>
+      <div class="team-grid" id="teamGrid"></div>
+    </div>
+  </section>
+
+  <!-- 12 · UNIVERSITY CURRICULUM BUILDER -->
+  <section class="curriculum bird-bg bird-bg--left bird-bg--eagle" id="curriculum">
+    <div class="container">
+      <p class="section-label">For universities</p>
+      <h2 class="section-title">University quantum pathway builder</h2>
+      <p class="section-desc">Universities often don't know what skills to teach or what jobs to prepare students for. Pick a target role family to generate a four-year curriculum aligned to real IBM Quantum roles.</p>
+      <div class="curr-select" id="currSelect" role="tablist" aria-label="Curriculum target role"></div>
+      <div class="curr-panel" id="currPanel"></div>
+    </div>
+  </section>
+
+  <!-- 13 · IBM ASSETS AS POWER-UPS -->
+  <section class="assets" id="assets">
+    <div class="container">
+      <p class="section-label">Power-ups on the board</p>
+      <h2 class="section-title">IBM Quantum assets as power-ups</h2>
+      <p class="section-desc">Every IBM Quantum resource is an unlockable asset — showing what it helps with, the pathway stage it supports, and the role families it feeds. Generate a pathway and the assets it unlocks light up.</p>
+      <div class="purpose-filter" id="purposeFilter" aria-label="Filter assets by purpose"></div>
+      <div class="asset-grid" id="assetGrid"></div>
+    </div>
+  </section>
+
+  <!-- 14 · KPI DASHBOARD -->
+  <section class="kpis" id="kpis">
+    <div class="container">
+      <p class="section-label">Measure what matters</p>
+      <h2 class="section-title">Workforce development outcomes</h2>
+      <p class="section-desc">Navigation works when learning, community, research, and employment connect. Generate a pathway and the KPIs it drives are highlighted.</p>
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES -->
+  <section class="principles">
+    <div class="container principles-grid">
+      <p class="principle">Workforce development is a <strong>navigation problem.</strong></p>
+      <p class="principle">Every learner needs a <strong>next best move.</strong></p>
+      <p class="principle">The ecosystem works when learning, community, research, and employment are <strong>connected.</strong></p>
+      <p class="principle">The goal is not just to train talent — it is to move people from <strong>curiosity to contribution.</strong></p>
+    </div>
+  </section>
+
+  <!-- 17 · FINAL MESSAGE -->
+  <section class="final-message scene-bg scene-bg--ecosystem">
+    <div class="container">
+      <div class="final-box">
+        <p>
+          The Quantum Career Navigator converts IBM's quantum roadmap into <strong>role-based learning
+          pathways</strong> and <strong>measurable workforce outcomes</strong>. It helps learners understand what to
+          learn, universities understand what to build, employers understand what talent they need, and
+          IBM understand how to prepare the workforce required for the next decade of quantum growth.
+        </p>
+        <p class="final-concept">The Navigator converts IBM's current and future quantum demand into personalized pathways for learners, curriculum guidance for universities, readiness guidance for enterprises, and measurable workforce outcomes for IBM.</p>
+        <div class="final-actions">
+          <a class="btn-primary" href="https://quantum.cloud.ibm.com/learning/en" target="_blank" rel="noopener">Explore IBM Quantum Learning</a>
+          <a class="btn-secondary" href="https://www.ibm.com/quantum/ibm-quantum-network" target="_blank" rel="noopener">Join the IBM Quantum Network</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-grid container">
+      <div class="footer-col">
+        <strong class="footer-brand">IBM Quantum · Career Navigator</strong>
+        <p>A workforce intelligence engine — translating IBM's quantum roadmap into pathways for learners, universities, employers, and workforce partners.</p>
+      </div>
+      <div class="footer-col">
+        <strong>Learn</strong>
+        <a href="https://quantum.cloud.ibm.com/learning/en" target="_blank" rel="noopener">IBM Quantum Learning</a>
+        <a href="https://quantum.cloud.ibm.com/learning/en/courses" target="_blank" rel="noopener">Courses</a>
+        <a href="https://www.ibm.com/quantum/blog/qiskit-summer-school-2026" target="_blank" rel="noopener">Qiskit Global Summer School</a>
+      </div>
+      <div class="footer-col">
+        <strong>Connect</strong>
+        <a href="https://www.ibm.com/quantum/ibm-quantum-network" target="_blank" rel="noopener">IBM Quantum Network</a>
+        <a href="https://www.ibm.com/quantum/ecosystem" target="_blank" rel="noopener">Qiskit Ecosystem</a>
+        <a href="https://www.ibm.com/quantum/case-studies" target="_blank" rel="noopener">Case studies</a>
+      </div>
+    </div>
+    <p class="footer-copy">© IBM Corp. · Quantum Career Navigator — workforce development concept</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

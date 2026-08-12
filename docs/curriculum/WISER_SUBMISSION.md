@@ -25,7 +25,7 @@ It is designed for working professionals and career changers (the same populatio
 
 | WISER workforce stance | How this month implements it |
 |------------------------|------------------------------|
-| Help people understand **where they fit** | Course 1 Readiness Track → eight pathways (WISER career areas + Applied SME) |
+| Help people understand **where they fit** | Course 1 Career Navigator + WISER-aligned eight-pathway quiz |
 | Accessible pathways, not only advanced degrees | No physics PhD prerequisite; math/code are placed, not gated |
 | Connect skills to **real applications** | IBM use-case memo + Portfolio Lab baseline/benchmark |
 | Layered skills (foundational → technical → applied → professional) | Weeks 1–4 follow that stack on purpose |
@@ -45,7 +45,9 @@ WISER career areas mapped in the Readiness Track:
 
 ## 3. What was already built vs what this packet adds
 
-The **Quantum Readiness Track** — a placement experience that asks about subject-matter expertise and returns a pathway map — is implemented in this repo at **`/learn/readiness`**. It was not present in the Portfolio Lab product tree; it now lives as a public, unauthenticated section of the Quantum Global Group Next.js site (`web/`), alongside the four-course syllabi, glossary, and classical-baseline lab.
+The **Quantum Career Navigator** — profile × interest × goal into a board-game pathway, IBM role families, skills mapper, 1/2/3-year forecast, enterprise readiness meter, team builder, and university curriculum builder — is implemented at **`/learn/navigator`**. It is a public static copy of [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation).
+
+The **WISER-aligned Readiness Track** (eight pathways, seven questions) remains at **`/learn/readiness`** as the shorter complement. Neither lived in the Portfolio Lab product tree; both now sit in the public, unauthenticated `/learn` section of the Quantum Global Group Next.js site (`web/`), alongside the four-course syllabi, glossary, and classical-baseline lab.
 
 The **Portfolio Lab** (`/portfolio`) remains the applied engine for week 4: classical objectives, QUBO+SA, VQE/QAOA-style hybrid paths, and comparison.
 
@@ -63,7 +65,9 @@ The **Portfolio Lab** (`/portfolio`) remains the applied engine for week 4: clas
 - Write a one-page plan: primary pathway, stretch pathway, 30-day artifact, and a non-goal.  
 - Explain why the workforce cannot be PhD-only.
 
-**Lab:** complete `/learn/readiness` (seven questions: background, work pattern, math, code, motivation, contribution style, time horizon). Scores are weighted; primary + two adjacent pathways are returned with “why” evidence. Not a hiring test.
+**Lab (primary):** complete `/learn/navigator` — choose a user type, interest, and goal; generate a pathway; screenshot the summary (role family, next-best action, IBM assets). Optional `?demo=1` loads the example student.
+
+**Lab (complement):** complete `/learn/readiness` (seven questions: background, work pattern, math, code, motivation, contribution style, time horizon). Scores are weighted; primary + two adjacent WISER-aligned pathways are returned with “why” evidence. Not a hiring test.
 
 **Deliverable:** signed learning plan.  
 **Assessment:** complete/incomplete on the track + scored plan (clarity, realism, honesty about gaps).
@@ -149,7 +153,7 @@ Full definitions: `/learn/glossary` and the in-app glossary module.
 
 | Artifact | Week |
 |----------|------|
-| Readiness Track result + learning plan | 1 |
+| Navigator pathway summary + learning plan | 1 |
 | Qubit card + concept check | 2 |
 | Use-case memo (+ IBM badge when earned) | 3 |
 | Capstone brief with baseline table | 4 |
@@ -162,14 +166,14 @@ Optional portable credentials: IBM Quantum Business Foundations badge; QGG/WISER
 - **Qolour session:** one workshop block in week 2 (live or remote kit).  
 - **IBM:** self-paced with a mid-week seminar.  
 - **Lab:** Portfolio Lab accounts or a shared demo tenant for week 4.  
-- **Cohort size:** 12–24 for discussion quality; Readiness Track itself scales.
+- **Cohort size:** 12–24 for discussion quality; Navigator and Readiness Track themselves scale.
 
 This matches how mixed-industry pre-apprenticeship cohorts actually run: professionals keep their day jobs, show up for structured hours, and leave with a named pathway plus evidence.
 
 ## 8. What QGG is asking of WISER
 
 - Review this as a **modular month** that can sit inside WISER Learn / workforce pathways (Quantum 101 → this month → applied project / summer-style challenge).  
-- Co-list or co-brand the Readiness Track as a public “where do I fit?” tool.  
+- Co-list or co-brand the Career Navigator as a public “where do I fit?” tool.  
 - If useful, slot Qolour and IBM as named week partners rather than generic “guest content.”  
 - Use week 4’s baseline discipline as a shared bar for applied projects in later WISER programs.
 

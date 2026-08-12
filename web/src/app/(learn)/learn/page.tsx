@@ -18,11 +18,17 @@ export default function LearnHomePage() {
           people WISER is trying to bring into the quantum economy.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
-          <Link
-            href="/learn/readiness"
+          <a
+            href="/learn/navigator"
             className="rounded-lg bg-ql-primary px-5 py-2.5 text-sm font-semibold text-ql-on-primary no-underline"
           >
-            Take the Readiness Track
+            Open the Career Navigator
+          </a>
+          <Link
+            href="/learn/readiness"
+            className="rounded-lg border border-ql-outline-variant px-5 py-2.5 text-sm font-medium text-ql-on-surface no-underline"
+          >
+            WISER Readiness Track
           </Link>
           <Link
             href="/learn/roles"
@@ -42,10 +48,12 @@ export default function LearnHomePage() {
       <section>
         <h2 className="font-headline text-2xl font-bold text-ql-on-surface">The month</h2>
         <p className="mt-2 max-w-3xl text-sm text-ql-on-surface-variant">
-          Four courses, one per week. Then roles, regional hubs, LinkedIn, hackathons, Qiskit
-          Summer School and Fall Fest, the C1000-179 developer cert, and the Advocate program.
-          Week 2 now includes Qolour, Q-CTRL Black Opal, and IBM Classroom hardware. Week 3 adds
-          Quantum Enigmas and the PQC vs QKD case file.
+          Four courses, one per week. Week 1 starts with the Career Navigator (profile ×
+          interest × goal), then the WISER-aligned eight-pathway quiz. Then roles, regional
+          hubs, LinkedIn, hackathons, Qiskit Summer School and Fall Fest, the C1000-179
+          developer cert, and the Advocate program. Week 2 now includes Qolour, Q-CTRL Black
+          Opal, and IBM Classroom hardware. Week 3 adds Quantum Enigmas and the PQC vs QKD
+          case file.
         </p>
         <ol className="mt-6 grid gap-4 md:grid-cols-2">
           {COURSES.map((course) => (

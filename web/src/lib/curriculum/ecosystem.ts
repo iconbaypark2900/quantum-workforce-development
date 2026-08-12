@@ -1,17 +1,29 @@
 import type { PathwayId } from "./types";
 
+/** Canonical interactive navigator (public): QuantumKev/ibm-quantum-navigation. */
+export const NAVIGATION_REPO = {
+  owner: "QuantumKev",
+  name: "ibm-quantum-navigation",
+  href: "https://github.com/QuantumKev/ibm-quantum-navigation",
+} as const;
+
+/** Static SPA vendored at web/public/learn/navigator. */
+export const NAVIGATOR_HREF = "/learn/navigator" as const;
+
 /** Encoded from Quantum Global Group “IBM Quantum Ecosystem Navigation Framework” one-pager. */
 export const ECOSYSTEM_PATHWAY = {
   title: "IBM Quantum Ecosystem Navigation Framework",
   goal: "Help learners, universities, and employers navigate the quantum ecosystem from curiosity to contribution.",
   source: "docs/curriculum/references/Quantum_Ecosystem_Pathway_OnePager.pptx",
+  repo: NAVIGATION_REPO.href,
+  live: NAVIGATOR_HREF,
 } as const;
 
 export const ECOSYSTEM_STEPS = [
   {
     id: "interests",
     title: "Start with interests",
-    body: "Name the subject you already care about — medicine, finance, music, logistics, security — before you pick a quantum job title. The Readiness Track does this first.",
+    body: "Name the subject you already care about — medicine, finance, music, logistics, security — before you pick a quantum job title. The Career Navigator does this first; the eight-pathway quiz is the WISER-aligned complement.",
   },
   {
     id: "learn",

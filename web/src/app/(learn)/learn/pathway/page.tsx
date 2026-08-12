@@ -4,6 +4,8 @@ import {
   ECOSYSTEM_PATHWAY,
   ECOSYSTEM_STEPS,
   INDUSTRY_PATH,
+  NAVIGATION_REPO,
+  NAVIGATOR_HREF,
   UNIVERSITY_PATH,
 } from "@/lib/curriculum/ecosystem";
 
@@ -19,9 +21,29 @@ export default function PathwayPage() {
         </h1>
         <p className="text-lg text-ql-on-surface-variant">{ECOSYSTEM_PATHWAY.goal}</p>
         <p className="text-sm text-ql-on-surface-variant">
-          This is the ecosystem pathway that was not in the Portfolio Lab repo — it lived as a
-          slide. It is now a page. Source file:{" "}
-          <code className="font-mono text-xs">docs/curriculum/references/Quantum_Ecosystem_Pathway_OnePager.pptx</code>
+          The live engine is the{" "}
+          <a href={NAVIGATOR_HREF} className="text-ql-primary">
+            Career Navigator
+          </a>{" "}
+          — profile, interest, and goal into a pathway board, role family, forecast, and
+          enterprise meter. This page is the one-pager summary (university vs industry). Slide
+          source:{" "}
+          <code className="font-mono text-xs">
+            docs/curriculum/references/Quantum_Ecosystem_Pathway_OnePager.pptx
+          </code>
+          . Code:{" "}
+          <a href={NAVIGATION_REPO.href} className="text-ql-primary">
+            {NAVIGATION_REPO.owner}/{NAVIGATION_REPO.name}
+          </a>
+          .
+        </p>
+        <p>
+          <a
+            href={NAVIGATOR_HREF}
+            className="inline-block rounded-lg bg-ql-primary px-5 py-2.5 text-sm font-semibold text-ql-on-primary no-underline"
+          >
+            Launch the Career Navigator
+          </a>
         </p>
       </header>
 
@@ -60,8 +82,12 @@ export default function PathwayPage() {
       </div>
 
       <p className="text-sm">
+        <a href={NAVIGATOR_HREF} className="text-ql-primary">
+          Career Navigator
+        </a>
+        {" · "}
         <Link href="/learn/readiness" className="text-ql-primary">
-          Find your fit
+          WISER Readiness Track
         </Link>
         {" · "}
         <Link href="/learn/roles" className="text-ql-primary">

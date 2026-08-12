@@ -12,7 +12,7 @@ The month is **competency-based**. Each week is pass / revise / fail. Revising w
 | Non-goal is specific | Missing | Generic humility | Clear boundary |
 | Honesty about math/code gaps | Inflated | Partial | Matches Track answers |
 
-**Pass:** ≥ 7 and Track completed.
+**Pass:** ≥ 7 and Career Navigator completed (Readiness Track optional).
 
 ## Week 2 — Qubit card + check (10 points)
 

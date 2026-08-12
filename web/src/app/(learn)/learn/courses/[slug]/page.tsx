@@ -100,14 +100,20 @@ export default async function CoursePage({
       </section>
 
       {course.slug === "quantum-readiness" ? (
-        <p>
-          <Link
-            href="/learn/readiness"
+        <div className="flex flex-wrap gap-3">
+          <a
+            href="/learn/navigator"
             className="inline-block rounded-lg bg-ql-primary px-5 py-2.5 text-sm font-semibold text-ql-on-primary no-underline"
           >
-            Launch the Readiness Track
+            Launch the Career Navigator
+          </a>
+          <Link
+            href="/learn/readiness"
+            className="inline-block rounded-lg border border-ql-outline-variant px-5 py-2.5 text-sm font-medium text-ql-on-surface no-underline"
+          >
+            WISER Readiness Track
           </Link>
-        </p>
+        </div>
       ) : null}
       {course.slug === "vocabulary-and-baseline" ? (
         <div className="flex flex-wrap gap-3">

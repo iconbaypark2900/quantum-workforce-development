@@ -19,9 +19,9 @@ export const COURSES: Course[] = [
     subtitle: "Subject-matter expertise first. Job titles second.",
     partner: "Quantum Global Group",
     hours: "6–8 hours",
-    format: "Guided self-assessment, live orientation, personal learning plan",
+    format: "Career Navigator, WISER-aligned quiz, live orientation, personal learning plan",
     summary:
-      "Most people meet quantum as a wall of physics. This course starts the other way: what you already know, how that knowledge shows up in the quantum ecosystem, and which of eight pathways is the honest next step. The Readiness Track on this site is the primary lab.",
+      "Most people meet quantum as a wall of physics. This course starts the other way: what you already know, how that knowledge shows up in the quantum ecosystem, and which pathway is the honest next step. The Career Navigator on this site is the primary lab; the eight-pathway Readiness Track is the WISER-aligned complement.",
     whyThisWeek:
       "Workforce programs fail when everyone is treated as a future algorithm researcher. Week 1 names the real roles — applied SME, software, hardware, security, sensing, business, education, algorithms — so the rest of the month has a reason.",
     learningOutcomes: [
@@ -44,17 +44,29 @@ export const COURSES: Course[] = [
         ],
       },
       {
-        title: "Run the Quantum Readiness Track",
+        title: "Run the Career Navigator",
         duration: "60–90 min",
         outcomes: [
-          "Complete the SME-fit assessment.",
+          "Generate a board-game pathway from profile, interest, and goal.",
+          "Name a role family, a next-best action, and one IBM learning asset.",
+        ],
+        activities: [
+          "Complete /learn/navigator (optional ?demo=1 loads the example student).",
+          "Open /learn/roles for that pathway — titles, skills, example employers.",
+          "Read /learn/pathway (ecosystem one-pager: university vs industry).",
+          "Save or screenshot the pathway summary for the cohort folder.",
+        ],
+      },
+      {
+        title: "WISER-aligned Readiness Track (complement)",
+        duration: "30–45 min",
+        outcomes: [
+          "Complete the eight-pathway SME-fit assessment.",
           "Interpret primary and secondary pathway scores without treating them as destiny.",
         ],
         activities: [
           "Complete /learn/readiness.",
-          "Open /learn/roles for that pathway — titles, skills, example employers.",
-          "Read /learn/pathway (ecosystem one-pager: university vs industry).",
-          "Save or screenshot the result card for the cohort folder.",
+          "Note where the Navigator role family and the WISER pathway agree or diverge.",
         ],
       },
       {
@@ -73,7 +85,7 @@ export const COURSES: Course[] = [
     deliverable:
       "Signed learning plan: primary pathway, secondary pathway, 30-day artifact, and a sentence on what you will not try to become this month.",
     assessment:
-      "Complete / incomplete on the Readiness Track plus a scored learning plan (clarity of fit, realism of artifact, honesty about gaps).",
+      "Complete / incomplete on the Career Navigator (and optional Readiness Track) plus a scored learning plan (clarity of fit, realism of artifact, honesty about gaps).",
   },
   {
     slug: "qubit-fundamentals",

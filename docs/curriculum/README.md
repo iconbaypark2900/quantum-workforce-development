@@ -6,7 +6,7 @@
 
 | Place | Who it is for | What lives there |
 |-------|----------------|------------------|
-| **Company website (`/learn`)** | Learners, WISER, employers | Readiness Track, roles/hiring, pathway, courses, classroom, events |
+| **Company website (`/learn`)** | Learners, WISER, employers | Career Navigator, Readiness Track, roles/hiring, pathway, courses, classroom, events |
 | **This GitHub repo** | Facilitators, partners, version control | Syllabi, rubrics, reference PDFs, source for the site |
 
 Do not put the learner experience only on GitHub — mixed-background cohorts will not clone a repo to find where they fit. Do not put only a pretty site with no repo — WISER and IBM Classroom need a citable packet.
@@ -18,7 +18,8 @@ Public for learners = **deploy the Next `web/` app** so `https://<your-web-host>
 | Path | What it is |
 |------|------------|
 | `/learn` | Program home |
-| `/learn/readiness` | SME-fit Readiness Track |
+| `/learn/navigator` | Career Navigator (vendored from [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation)) |
+| `/learn/readiness` | WISER-aligned eight-pathway SME-fit quiz (complement) |
 | `/learn/roles` | Role families, skills, example employers |
 | `/learn/pathway` | Ecosystem one-pager (university vs industry) |
 | `/learn/courses` | Four-week syllabi |

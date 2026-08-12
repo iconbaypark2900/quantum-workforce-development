@@ -6,6 +6,7 @@ import { type ReactNode } from "react";
 
 const NAV = [
   { href: "/learn", label: "Program" },
+  { href: "/learn/navigator", label: "Navigator", staticPage: true },
   { href: "/learn/readiness", label: "Readiness" },
   { href: "/learn/roles", label: "Roles" },
   { href: "/learn/courses", label: "Courses" },
@@ -34,16 +35,21 @@ export default function LearnShell({ children }: { children: ReactNode }) {
                 item.href === "/learn"
                   ? pathname === "/learn"
                   : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const className = `rounded-lg px-3 py-1.5 text-sm font-medium no-underline transition-colors ${
+                active
+                  ? "bg-ql-surface-container text-ql-primary"
+                  : "text-ql-on-surface-variant hover:bg-ql-surface-container hover:text-ql-on-surface"
+              }`;
+              // Static SPA in public/ — a Next <Link> would client-navigate and 404.
+              if (item.staticPage) {
+                return (
+                  <a key={item.href} href={item.href} className={className}>
+                    {item.label}
+                  </a>
+                );
+              }
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium no-underline transition-colors ${
-                    active
-                      ? "bg-ql-surface-container text-ql-primary"
-                      : "text-ql-on-surface-variant hover:bg-ql-surface-container hover:text-ql-on-surface"
-                  }`}
-                >
+                <Link key={item.href} href={item.href} className={className}>
                   {item.label}
                 </Link>
               );

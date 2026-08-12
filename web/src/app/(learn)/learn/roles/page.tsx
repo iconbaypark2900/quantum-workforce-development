@@ -8,7 +8,7 @@ export default function RolesPage() {
     <div className="space-y-10">
       <header className="max-w-3xl space-y-3">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-ql-primary">
-          After the Readiness Track
+          After the Navigator
         </p>
         <h1 className="font-headline text-4xl font-bold tracking-tight text-ql-on-surface">
           Roles, skills, and who hires them
@@ -18,11 +18,15 @@ export default function RolesPage() {
           post those jobs. This is a market map, not a live job board — always verify the posting.
         </p>
         <p className="text-sm text-ql-on-surface-variant">
-          Run{" "}
+          Run the{" "}
+          <a href="/learn/navigator" className="text-ql-primary">
+            Career Navigator
+          </a>{" "}
+          (or the{" "}
           <Link href="/learn/readiness" className="text-ql-primary">
-            the Readiness Track
-          </Link>{" "}
-          if you do not yet know which family is yours.
+            WISER Readiness Track
+          </Link>
+          ) if you do not yet know which family is yours.
         </p>
       </header>
 

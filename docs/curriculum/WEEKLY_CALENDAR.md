@@ -7,7 +7,7 @@ Assume a Wednesday start so working professionals can use a weekend in the middl
 | Day | Effort | Activity |
 |-----|--------|----------|
 | Wed | 45 min | Live orientation: eight pathways, what this month is not |
-| Thu–Fri | 60–90 min | Complete `/learn/readiness`; screenshot result into cohort folder |
+| Thu–Fri | 90–120 min | Complete `/learn/navigator`; screenshot pathway summary. Optional `/learn/readiness` quiz |
 | Sat | 90 min | Draft learning plan (primary, stretch, artifact, non-goal) |
 | Sun | 30 min | Optional office hours |
 | Mon–Tue | 60 min | Peer read of plans; facilitator comments |

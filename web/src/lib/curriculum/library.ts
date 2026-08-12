@@ -16,6 +16,14 @@ export const LIBRARY_ITEMS = [
     week: 2,
   },
   {
+    id: "navigator",
+    title: "Quantum Career Navigator",
+    source: "QuantumKev/ibm-quantum-navigation (vendored)",
+    href: "/learn/navigator",
+    note: "Interactive pathway engine: profile × interest × goal → board, role family, forecast, enterprise meter.",
+    week: 1,
+  },
+  {
     id: "ecosystem",
     title: "Quantum ecosystem pathway one-pager",
     source: "Quantum Global Group",
