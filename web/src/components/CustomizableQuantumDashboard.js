@@ -1933,7 +1933,7 @@ export default function QuantumPortfolioDashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 28, height: 28, borderRadius: 6, background: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: t.bg, fontWeight: 700 }}>Q</div>
           <div>
-            <h1 id="page-heading" style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, fontFamily: FONT.sans }}>Quantum Portfolio Lab</h1>
+            <h1 id="page-heading" style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em", margin: 0, fontFamily: FONT.sans }}>Quantum Workforce Development</h1>
             <p style={{ fontSize: 11, color: t.textDim, margin: 0 }}>Hybrid Optimization Dashboard</p>
           </div>
         </div>

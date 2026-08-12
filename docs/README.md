@@ -1,6 +1,6 @@
-# Quantum Hybrid Portfolio — Documentation
+# Quantum Workforce Development — Documentation
 
-Welcome to the Quantum Hybrid Portfolio documentation. Guides live under **`docs/`** with subfolders for dashboards, guides, frontend notes, project reference, planning, and misc.
+Welcome to the Quantum Workforce Development documentation. Guides live under **`docs/`** with subfolders for dashboards, guides, frontend notes, project reference, planning, and misc.
 
 ## Master index
 

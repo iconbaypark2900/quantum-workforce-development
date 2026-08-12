@@ -198,7 +198,7 @@ export default function StrategyPage(props: NextClientPageProps) {
 `;
     const generated =
       manifestGeneratedAt != null ? manifestGeneratedAt : "—";
-    return `# Quantum Ledger Strategy Manifest
+    return `# Quantum Workforce Development Strategy Manifest
 # Generated: ${generated}
 objective: ${selectedObj}
 constraints:

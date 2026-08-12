@@ -328,7 +328,7 @@ export default function RunReportPage(props: NextClientPagePropsWithId) {
       {/* Print-only identity header */}
       {run && (
         <div className="hidden print:block text-black space-y-2 border-b border-gray-300 pb-4 mb-2">
-          <h1 className="text-xl font-bold">Quantum Ledger — Lab Run Report</h1>
+          <h1 className="text-xl font-bold">Quantum Workforce Development — Lab Run Report</h1>
           <p className="text-gray-600 text-sm font-mono">Run {run.id} · {new Date(run.created_at).toLocaleString()}</p>
           {run.spec && (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mt-2">

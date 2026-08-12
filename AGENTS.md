@@ -1,5 +1,6 @@
 ## Learned User Preferences
 
+- Product / brand name is **Quantum Workforce Development** (user-facing titles, sidebar, page metadata, README). Prefer that name over older labels such as Quantum Ledger, Quantum Portfolio Lab, or Quantum Hybrid Portfolio in UI copy and docs titles. Keep Python package / Fly app / GitHub repo slugs stable unless explicitly renaming them (`quantum-hybrid-portfolio` remains the install/deploy identifier until the GitHub repo is renamed).
 - Prefers concrete runnable scripts and explicit ports when running the Flask API, CRA dashboard, and Next `web/` app at the same time — **`scripts/run-next-web.sh`** (Next default **3042**), **`./scripts/dev.sh`** (starts Flask + Next in one flow; Next default **3000**; see `--cra`, `--api-only`, `--next-only`), **`docs/GETTING_STARTED.md`**.
 - Keeps **`.cursor/`** (entire tree, including rules/skills) and **`.claude/`** out of Git via **`.gitignore`**; avoids committing or broadening ignore lists with speculative assistant-editor tool directories unless those tools are actually adopted.
 

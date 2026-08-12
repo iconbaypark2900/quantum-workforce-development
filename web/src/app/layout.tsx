@@ -24,8 +24,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quantum Ledger",
-  description: "Quantum-Inspired Portfolio Optimization Platform",
+  title: "Quantum Workforce Development",
+  description: "Quantum Workforce Development — quantum-inspired portfolio optimization",
 };
 
 export default function RootLayout({
