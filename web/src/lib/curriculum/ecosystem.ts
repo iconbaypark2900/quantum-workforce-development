@@ -1,13 +1,15 @@
 import type { PathwayId } from "./types";
 
-/** Canonical interactive navigator (public): QuantumKev/ibm-quantum-navigation. */
+/** Canonical interactive navigator — public on Kevin’s GitHub. */
 export const NAVIGATION_REPO = {
   owner: "QuantumKev",
   name: "ibm-quantum-navigation",
   href: "https://github.com/QuantumKev/ibm-quantum-navigation",
+  /** GitHub Pages (Settings → Pages → Deploy from branch `main` / root). */
+  pages: "https://quantumkev.github.io/ibm-quantum-navigation/",
 } as const;
 
-/** Static SPA vendored at web/public/learn/navigator. */
+/** In-site copy (same SPA). Use this on the QGG /learn chrome. */
 export const NAVIGATOR_HREF = "/learn/navigator" as const;
 
 /** Encoded from Quantum Global Group “IBM Quantum Ecosystem Navigation Framework” one-pager. */

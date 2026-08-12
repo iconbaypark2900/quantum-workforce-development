@@ -18,7 +18,7 @@ export const LIBRARY_ITEMS = [
   {
     id: "navigator",
     title: "Quantum Career Navigator",
-    source: "QuantumKev/ibm-quantum-navigation (vendored)",
+    source: "QuantumKev/ibm-quantum-navigation (public GitHub + Pages)",
     href: "/learn/navigator",
     note: "Interactive pathway engine: profile × interest × goal → board, role family, forecast, enterprise meter.",
     week: 1,

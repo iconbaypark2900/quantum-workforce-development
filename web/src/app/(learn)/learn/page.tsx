@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { COURSES, PATHWAY_LIST, PROGRAM } from "@/lib/curriculum";
+import { COURSES, NAVIGATION_REPO, PATHWAY_LIST, PROGRAM } from "@/lib/curriculum";
 
 export default function LearnHomePage() {
   return (
@@ -43,6 +43,16 @@ export default function LearnHomePage() {
             Events and certs
           </Link>
         </div>
+        <p className="text-sm text-ql-on-surface-variant">
+          The Navigator is also public on Kevin’s GitHub:{" "}
+          <a href={NAVIGATION_REPO.href} className="text-ql-primary">
+            {NAVIGATION_REPO.owner}/{NAVIGATION_REPO.name}
+          </a>
+          {" · "}
+          <a href={NAVIGATION_REPO.pages} className="text-ql-primary">
+            GitHub Pages
+          </a>
+        </p>
       </section>
 
       <section>

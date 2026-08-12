@@ -6,6 +6,11 @@ https://github.com/QuantumKev/ibm-quantum-navigation
 
 Served at `/learn/navigator` (and `/learn/navigator/index.html`).
 
+Public upstream (already public):
+
+- Repo: https://github.com/QuantumKev/ibm-quantum-navigation
+- GitHub Pages: https://quantumkev.github.io/ibm-quantum-navigation/
+
 Edits in this tree vs upstream:
 
 - A Quantum Global Group bar linking back to `/learn`

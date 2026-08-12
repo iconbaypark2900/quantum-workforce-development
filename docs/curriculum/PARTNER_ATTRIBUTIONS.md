@@ -5,7 +5,7 @@ This month is a **curated pathway**, not a claim that Quantum Global Group autho
 ## Quantum Global Group (owns)
 
 - Program architecture, pacing, assessment, and facilitation model  
-- Quantum Career Navigator (vendored from [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) at `/learn/navigator`)
+- Quantum Career Navigator — authored on [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) (public); GitHub Pages [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/); also at `/learn/navigator`
 - Quantum Readiness Track (SME-fit assessment and eight WISER-aligned pathways)  
 - Applied Domain Specialist pathway  
 - Week 4 vocabulary list as *assessed* lexicon (definitions are standard; the bar is QGG’s)  
@@ -64,7 +64,7 @@ Used in **week 3**:
 
 IBM owns the course, exam, and badge. Learners use IBM’s platform. QGG adds a seminar and a graded memo so the badge is not a click-through.
 
-IBM trademarks (IBM Quantum®, Qiskit, processor names used as artwork) remain IBM’s. The Career Navigator is an interview/demo-origin tool; review usage rights before a public production deploy. This packet does not imply IBM endorsement of WISER or QGG until those parties say so.
+IBM trademarks (IBM Quantum®, Qiskit, processor names used as artwork) remain IBM’s. Kevin publishes the Career Navigator from his public GitHub; that is not IBM endorsement of WISER or QGG.
 
 ## WISER
 

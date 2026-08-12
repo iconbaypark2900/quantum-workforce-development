@@ -9,16 +9,19 @@
 | **Company website (`/learn`)** | Learners, WISER, employers | Career Navigator, Readiness Track, roles/hiring, pathway, courses, classroom, events |
 | **This GitHub repo** | Facilitators, partners, version control | Syllabi, rubrics, reference PDFs, source for the site |
 
-Do not put the learner experience only on GitHub — mixed-background cohorts will not clone a repo to find where they fit. Do not put only a pretty site with no repo — WISER and IBM Classroom need a citable packet.
+Public for learners has two layers:
 
-Public for learners = **deploy the Next `web/` app** so `https://<your-web-host>/learn` resolves. Merging this branch is not the same as a production deploy (`./scripts/vercel-deploy-web.sh` or Fly per `docs/FLY_DEPLOY.md`).
+1. **Career Navigator (today):** [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) is already a **public** repo. Turn on GitHub Pages (Settings → Pages → Deploy from a branch → `main` / `/` root). Live URL: [https://quantumkev.github.io/ibm-quantum-navigation/](https://quantumkev.github.io/ibm-quantum-navigation/). Same app is also at `/learn/navigator` once `web/` is deployed.
+2. **Full `/learn` month:** deploy the Next `web/` app (`./scripts/vercel-deploy-web.sh` or Fly per `docs/FLY_DEPLOY.md`). Merging this branch is not that deploy. The org repo `Quantum-Global-Group/quantum-hybrid-portfolio` is still **private** — WISER cannot open the packet on GitHub until someone with admin flips **Settings → General → Danger zone → Change repository visibility → Public**.
+
+Do not put the learner experience only on GitHub — mixed-background cohorts will not clone a repo to find where they fit. Do not put only a pretty site with no repo — WISER and IBM Classroom need a citable packet.
 
 ## Live routes
 
 | Path | What it is |
 |------|------------|
 | `/learn` | Program home |
-| `/learn/navigator` | Career Navigator (vendored from [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation)) |
+| `/learn/navigator` | Career Navigator (same SPA as [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation); public Pages: [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/)) |
 | `/learn/readiness` | WISER-aligned eight-pathway SME-fit quiz (complement) |
 | `/learn/roles` | Role families, skills, example employers |
 | `/learn/pathway` | Ecosystem one-pager (university vs industry) |

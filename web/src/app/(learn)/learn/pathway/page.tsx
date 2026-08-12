@@ -35,6 +35,10 @@ export default function PathwayPage() {
           <a href={NAVIGATION_REPO.href} className="text-ql-primary">
             {NAVIGATION_REPO.owner}/{NAVIGATION_REPO.name}
           </a>
+          {" · "}
+          <a href={NAVIGATION_REPO.pages} className="text-ql-primary">
+            GitHub Pages
+          </a>
           .
         </p>
         <p>

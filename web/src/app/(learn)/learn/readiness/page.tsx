@@ -22,9 +22,13 @@ export default function ReadinessPage() {
             Career Navigator
           </a>{" "}
           (profile × interest × goal → a board-game pathway). Use this quiz as the complement:
-          it is shorter, WISER-taxonomy-aligned, and stays in this browser. Source:{" "}
+          it is shorter, WISER-taxonomy-aligned, and stays in this browser. Public source:{" "}
           <a href={NAVIGATION_REPO.href} className="text-ql-primary">
             {NAVIGATION_REPO.owner}/{NAVIGATION_REPO.name}
+          </a>
+          {" · "}
+          <a href={NAVIGATION_REPO.pages} className="text-ql-primary">
+            GitHub Pages
           </a>
           .
         </p>

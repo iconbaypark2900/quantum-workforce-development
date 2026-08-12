@@ -13,7 +13,7 @@ This is the master index for all Quantum Hybrid Portfolio documentation.
 | [curriculum/PARTNER_ATTRIBUTIONS.md](curriculum/PARTNER_ATTRIBUTIONS.md) | Qolour, Q-CTRL, IBM, Enigmas, IQM, WISER |
 | [curriculum/references/README.md](curriculum/references/README.md) | PDFs / PPTX inventory |
 
-Live site (Next.js): `/learn`, `/learn/navigator`, `/learn/readiness`, `/learn/roles`, `/learn/pathway`, `/learn/courses`, `/learn/classroom`, `/learn/next`.
+Live site (Next.js): `/learn`, `/learn/navigator` (also [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/)), `/learn/readiness`, `/learn/roles`, `/learn/pathway`, `/learn/courses`, `/learn/classroom`, `/learn/next`.
 
 ## Getting started
 

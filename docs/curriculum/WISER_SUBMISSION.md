@@ -4,7 +4,7 @@
 **From:** Kevin Robinson, Quantum Global Group  
 **Role sought:** Quantum curriculum / workforce development  
 **Program length:** 4 weeks (one course per week) · 6–8 hours/week · ~28–34 hours total  
-**Live implementation:** Quantum Global Group site, `/learn` (this repository)
+**Live implementation:** Quantum Global Group site, `/learn` (this repository). **Public Navigator now:** [github.com/QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation) · [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/)
 
 ---
 
@@ -45,7 +45,7 @@ WISER career areas mapped in the Readiness Track:
 
 ## 3. What was already built vs what this packet adds
 
-The **Quantum Career Navigator** — profile × interest × goal into a board-game pathway, IBM role families, skills mapper, 1/2/3-year forecast, enterprise readiness meter, team builder, and university curriculum builder — is implemented at **`/learn/navigator`**. It is a public static copy of [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation).
+The **Quantum Career Navigator** — profile × interest × goal into a board-game pathway, IBM role families, skills mapper, 1/2/3-year forecast, enterprise readiness meter, team builder, and university curriculum builder — lives on Kevin Robinson’s public GitHub: [QuantumKev/ibm-quantum-navigation](https://github.com/QuantumKev/ibm-quantum-navigation), with GitHub Pages at [https://quantumkev.github.io/ibm-quantum-navigation/](https://quantumkev.github.io/ibm-quantum-navigation/). The same SPA is vendored at **`/learn/navigator`** on the Quantum Global Group site.
 
 The **WISER-aligned Readiness Track** (eight pathways, seven questions) remains at **`/learn/readiness`** as the shorter complement. Neither lived in the Portfolio Lab product tree; both now sit in the public, unauthenticated `/learn` section of the Quantum Global Group Next.js site (`web/`), alongside the four-course syllabi, glossary, and classical-baseline lab.
 
@@ -65,7 +65,7 @@ The **Portfolio Lab** (`/portfolio`) remains the applied engine for week 4: clas
 - Write a one-page plan: primary pathway, stretch pathway, 30-day artifact, and a non-goal.  
 - Explain why the workforce cannot be PhD-only.
 
-**Lab (primary):** complete `/learn/navigator` — choose a user type, interest, and goal; generate a pathway; screenshot the summary (role family, next-best action, IBM assets). Optional `?demo=1` loads the example student.
+**Lab (primary):** complete the Career Navigator — [GitHub Pages](https://quantumkev.github.io/ibm-quantum-navigation/) or `/learn/navigator` — choose a user type, interest, and goal; generate a pathway; screenshot the summary (role family, next-best action, IBM assets). Optional `?demo=1` loads the example student.
 
 **Lab (complement):** complete `/learn/readiness` (seven questions: background, work pattern, math, code, motivation, contribution style, time horizon). Scores are weighted; primary + two adjacent WISER-aligned pathways are returned with “why” evidence. Not a hiring test.
 
