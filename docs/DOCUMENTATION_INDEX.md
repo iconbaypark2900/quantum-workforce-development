@@ -2,6 +2,19 @@
 
 This is the master index for all Quantum Hybrid Portfolio documentation.
 
+## Workforce curriculum (WISER)
+
+| Document | Description |
+|----------|-------------|
+| [curriculum/README.md](curriculum/README.md) | Hub: `/learn` routes + packet files |
+| [curriculum/WISER_SUBMISSION.md](curriculum/WISER_SUBMISSION.md) | One-month program submission (four courses, outcomes, partners) |
+| [curriculum/WEEKLY_CALENDAR.md](curriculum/WEEKLY_CALENDAR.md) | Facilitator calendar |
+| [curriculum/ASSESSMENT_AND_RUBRICS.md](curriculum/ASSESSMENT_AND_RUBRICS.md) | Pass/revise rubrics |
+| [curriculum/PARTNER_ATTRIBUTIONS.md](curriculum/PARTNER_ATTRIBUTIONS.md) | Qolour, Q-CTRL, IBM, Enigmas, IQM, WISER |
+| [curriculum/references/README.md](curriculum/references/README.md) | PDFs / PPTX inventory |
+
+Live site (Next.js): `/learn`, `/learn/navigator` (also [quantumkev.github.io/ibm-quantum-navigation](https://quantumkev.github.io/ibm-quantum-navigation/)), `/learn/readiness`, `/learn/roles`, `/learn/pathway`, `/learn/courses`, `/learn/classroom`, `/learn/next`.
+
 ## Getting started
 
 | Document | Description |

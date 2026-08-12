@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" role="img" aria-label="IBM Quantum Ecosystem">
+  <rect width="400" height="120" fill="#f4f4f4" rx="8"/>
+  <line x1="40" y1="60" x2="360" y2="60" stroke="#c6c6c6" stroke-width="1"/>
+  <line x1="200" y1="20" x2="200" y2="100" stroke="#c6c6c6" stroke-width="1"/>
+  <ellipse cx="200" cy="60" rx="55" ry="35" fill="none" stroke="#6929c4" stroke-width="2.5"/>
+  <rect x="170" y="48" width="60" height="24" fill="#393939" rx="3"/>
+  <text x="200" y="64" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="8" font-weight="600">IBM Quantum</text>
+  <circle cx="80" cy="40" r="12" fill="#ee5396"/>
+  <circle cx="320" cy="40" r="12" fill="#0f62fe"/>
+  <circle cx="80" cy="80" r="12" fill="#1192e8"/>
+  <circle cx="320" cy="80" r="12" fill="#6929c4"/>
+  <circle cx="120" cy="60" r="6" fill="#ff7eb6"/>
+  <circle cx="280" cy="60" r="6" fill="#33b1ff"/>
+</svg>

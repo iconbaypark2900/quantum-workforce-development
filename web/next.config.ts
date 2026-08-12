@@ -6,6 +6,22 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  async rewrites() {
+    // Static SPA in public/learn/navigator — beforeFiles so App Router /learn/*
+    // does not 404 /learn/navigator before the HTML is served.
+    return {
+      beforeFiles: [
+        {
+          source: "/learn/navigator",
+          destination: "/learn/navigator/index.html",
+        },
+        {
+          source: "/learn/navigator/",
+          destination: "/learn/navigator/index.html",
+        },
+      ],
+    };
+  },
 };
 
 export default nextConfig;

@@ -2,6 +2,10 @@ import coreWebVitals from "eslint-config-next/core-web-vitals";
 import typescript from "eslint-config-next/typescript";
 
 /** @type {import("eslint").Linter.Config[]} */
-const eslintConfig = [...coreWebVitals, ...typescript];
+const eslintConfig = [
+  { ignores: ["public/learn/navigator/**"] },
+  ...coreWebVitals,
+  ...typescript,
+];
 
 export default eslintConfig;

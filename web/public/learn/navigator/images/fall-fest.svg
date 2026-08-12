@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" role="img" aria-label="Qiskit Fall Fest">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8daff"/>
+      <stop offset="100%" stop-color="#d0e2ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="120" fill="url(#bg)" rx="8"/>
+  <circle cx="70" cy="60" r="42" fill="#ee5396"/>
+  <text x="70" y="54" text-anchor="middle" fill="#161616" font-family="system-ui,sans-serif" font-size="9" font-weight="700">QISKIT</text>
+  <text x="70" y="72" text-anchor="middle" fill="#161616" font-family="system-ui,sans-serif" font-size="8" font-weight="600">FALL FEST</text>
+  <ellipse cx="70" cy="62" rx="14" ry="14" fill="none" stroke="#161616" stroke-width="1.5"/>
+  <path d="M62 68 L78 54" stroke="#161616" stroke-width="1.5"/>
+  <text x="200" y="68" fill="#6929c4" font-family="monospace" font-size="14" font-weight="600">Community Entry →</text>
+  <path d="M300 45 L330 60 L300 75" fill="#1192e8" opacity="0.8"/>
+  <path d="M340 40 L370 55 L340 70" fill="#6929c4" opacity="0.7"/>
+</svg>
