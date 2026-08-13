@@ -31,10 +31,15 @@ docs/**
 *.md
 !README.md
 
-# Large / non-runtime root files
-*.png
-*.pdf
-*.docx
+# Large / non-runtime assets — do NOT use blanket *.pdf / *.png.
+# Those patterns also match web/public/learn/** and break Classroom PDFs
+# + Navigator images on the Learn Vercel deploy.
+/*.png
+/*.pdf
+/*.docx
+docs/**/*.png
+docs/**/*.pdf
+docs/**/*.docx
 *.log
 api_output.log
 api_config_patch.py
