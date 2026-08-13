@@ -70,16 +70,27 @@ export default function ClassroomPage() {
 
       <section className="space-y-3">
         <h2 className="font-headline text-2xl font-bold text-ql-on-surface">Downloadable references</h2>
-        <ul className="space-y-3">
+        <p className="max-w-3xl text-sm text-ql-on-surface-variant">
+          Qulture math sheets (QMMV), Max Cut workforce pair, IQM circuit sheet, and the PQC vs QKD
+          quick reference. Open any sheet in a new tab.
+        </p>
+        <ul className="grid gap-3 md:grid-cols-2">
           {LIBRARY_ITEMS.map((item) => (
             <li
               key={item.id}
               className="rounded-xl border border-ql-outline-variant bg-ql-surface-low p-5"
             >
-              <a href={item.href} className="font-headline text-lg font-bold text-ql-primary">
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                className="font-headline text-lg font-bold text-ql-primary"
+              >
                 {item.title}
               </a>
-              <p className="mt-1 text-xs text-ql-on-surface-variant">{item.source}</p>
+              <p className="mt-1 text-xs text-ql-on-surface-variant">
+                {item.source} · Week {item.week}
+              </p>
               <p className="mt-2 text-sm text-ql-on-surface-variant">{item.note}</p>
             </li>
           ))}
