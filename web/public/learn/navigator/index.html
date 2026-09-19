@@ -8,58 +8,71 @@
   <base href="/learn/navigator/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <div class="qgg-learn-bar">
-    <a href="/learn">← Program home</a>
-    <span class="qgg-learn-bar-label">01 · Navigator · Quantum Global Group</span>
-    <a href="/learn/classroom">Next: Classroom →</a>
-  </div>
-
-  <nav class="site-nav" aria-label="Quantum Career Navigator">
-    <div class="site-nav-inner">
-      <a class="site-nav-brand" href="#top">
-        <span class="brand-mark" aria-hidden="true"></span>
-        Quantum Global Group <span class="brand-sub">Career Navigator</span>
-      </a>
-      <ul class="site-nav-links">
-        <li><a href="#navigator">Navigator</a></li>
-        <li><a href="#board">Pathway</a></li>
-        <li><a href="#roles">Roles</a></li>
-      </ul>
-      <a class="nav-signin" href="https://quantum.cloud.ibm.com/" target="_blank" rel="noopener">Sign in to Platform</a>
-    </div>
-  </nav>
-
-  <!-- 1 · HERO -->
-  <header class="hero" id="top">
-    <div class="hero-aurora" aria-hidden="true"></div>
-    <div class="container hero-inner">
-      <p class="hero-eyebrow">Quantum Global Group · Workforce Intelligence</p>
-      <h1 class="hero-title">Quantum Career<br />Navigator</h1>
-      <p class="hero-subtitle">A workforce intelligence engine for quantum career pathways, learning pathways, and workforce readiness.</p>
-      <p class="hero-lead">
-        The Quantum Career Navigator connects quantum role families, learning resources, university
-        programs, enterprise readiness, ecosystem projects, and workforce outcomes into one
-        <strong>personalized navigation system</strong>.
-      </p>
-      <p class="hero-positioning">Turn quantum industry momentum into <strong>workforce pathways, curriculum pathways, and career pathways.</strong></p>
-
-      <div class="hero-callouts">
-        <div class="callout"><span class="callout-step">01</span><span class="callout-text">Discover roles</span></div>
-        <span class="callout-arrow" aria-hidden="true">→</span>
-        <div class="callout"><span class="callout-step">02</span><span class="callout-text">Build skills</span></div>
-        <span class="callout-arrow" aria-hidden="true">→</span>
-        <div class="callout"><span class="callout-step">03</span><span class="callout-text">Unlock opportunities</span></div>
+  <header class="learn-shell" id="top">
+    <div class="learn-shell-inner">
+      <div class="learn-shell-top">
+        <a class="learn-brand" href="/learn">
+          <p class="learn-brand-kicker">Quantum Global Group</p>
+          <p class="learn-brand-title">Quantum for the Qulture</p>
+        </a>
+        <nav class="learn-nav" aria-label="Learning platform">
+          <a href="/learn">Program</a>
+          <a href="/learn/navigator" aria-current="page">Navigator</a>
+          <a href="/learn/classroom">Classroom</a>
+          <a href="/dashboard">Portfolio Lab</a>
+        </nav>
       </div>
+      <nav class="journey-compact" aria-label="Learning journey">
+        <a class="journey-card is-active" href="/learn/navigator">
+          <span>01</span> Navigator
+        </a>
+        <a class="journey-card" href="/learn/classroom">
+          <span>02</span> Classroom
+        </a>
+        <a class="journey-card" href="/dashboard">
+          <span>03</span> Portfolio Lab
+        </a>
+      </nav>
+    </div>
+  </header>
 
+  <header class="hero">
+    <div class="container hero-inner">
+      <p class="hero-eyebrow">01 · Navigator</p>
+      <h1 class="hero-title">Quantum Career Navigator</h1>
+      <p class="hero-subtitle">Find where your skills, interests, and goals fit in the quantum ecosystem.</p>
+      <p class="hero-lead">
+        Tell the engine who you are and where you want to go. It maps a pathway through
+        roles, skills, and QUANTUM GLOBAL GROUP learning — then Classroom and Portfolio Lab
+        help you build the next step.
+      </p>
       <div class="hero-actions">
         <a class="btn-primary" href="#navigator">Start navigating</a>
         <button class="btn-ghost js-demo" type="button">Load example student "Quantum Kevin"</button>
+        <a class="btn-secondary" href="https://quantum.cloud.ibm.com/" target="_blank" rel="noopener">Sign in to Platform</a>
       </div>
+      <nav class="journey-grid" aria-label="Your guided path">
+        <a class="journey-card is-active" href="#navigator">
+          <p class="journey-step">01</p>
+          <p class="journey-label">Navigator</p>
+          <p class="journey-q">Where do I fit in quantum?</p>
+        </a>
+        <a class="journey-card" href="/learn/classroom">
+          <p class="journey-step">02</p>
+          <p class="journey-label">Classroom</p>
+          <p class="journey-q">Teach me the fundamentals.</p>
+        </a>
+        <a class="journey-card" href="/dashboard">
+          <p class="journey-step">03</p>
+          <p class="journey-label">Portfolio Lab</p>
+          <p class="journey-q">Build something I can show.</p>
+        </a>
+      </nav>
     </div>
   </header>
 
@@ -286,12 +299,14 @@
   <footer class="site-footer">
     <div class="footer-grid container">
       <div class="footer-col">
-        <strong class="footer-brand">Quantum Global Group · Career Navigator</strong>
+        <strong class="footer-brand">Quantum Global Group</strong>
+        <p>Quantum for the Qulture</p>
         <p>Learn the math. See the quantum. Find your pathway.</p>
       </div>
       <div class="footer-col">
         <strong>Learn</strong>
-        <a href="/learn">Program home</a>
+        <a href="/learn">Program</a>
+        <a href="/learn/navigator">Navigator</a>
         <a href="/learn/classroom">Classroom</a>
         <a href="/dashboard">Portfolio Lab</a>
       </div>
@@ -299,7 +314,7 @@
         <strong>Quantum Global Group</strong>
         <a href="https://www.quantumglobalgroup.io/">Main site</a>
         <a href="https://github.com/Quantum-Global-Group">GitHub</a>
-        <a href="/dashboard">Portfolio Lab</a>
+        <a href="https://quantum.cloud.ibm.com/" target="_blank" rel="noopener">Sign in to Platform</a>
       </div>
     </div>
     <p class="footer-copy">© Quantum Global Group · Quantum Career Navigator</p>
