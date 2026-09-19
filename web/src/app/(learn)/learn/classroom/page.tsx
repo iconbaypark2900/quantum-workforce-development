@@ -10,7 +10,7 @@ export default function ClassroomPage() {
   return (
     <div className="space-y-14">
       <LearnPageHeader
-        eyebrow="03 · Classroom"
+        eyebrow="02 · Classroom"
         title="Quantum Classroom"
         subtitle="Beginner-friendly learning sheets, hands-on activities, and trusted resources for building quantum intuition before formalism."
         showJourney
